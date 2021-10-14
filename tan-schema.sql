@@ -1,4 +1,5 @@
-DROP TABLE IF EXISTS
+DROP TABLE IF EXISTS Departments, Employees, Bookers, Managers, HealthDeclaration
+MeetingRooms, Updates, Sessions, Joins CASCADE;
 
 
 CREATE TABLE Departments (
@@ -69,7 +70,7 @@ CREATE TABLE Sessions (
   FOREIGN KEY (eid_booked) REFERENCES Bookers(eid),
   FOREIGN KEY (eid_approved) REFERENCES Managers(eid)
   FOREIGN KEY(room,floor) REFERENCES Meetings (room,floor) ON DELETE CASCADE
-)
+);
 
 CREATE TABLE Joins (
   eid INTEGER,
@@ -81,10 +82,11 @@ CREATE TABLE Joins (
   ON DELETE CASCADE,
   FOREIGN KEY (eid) REFERENCES Employees(eid) ON DELETE CASCADE,
   PRIMARY KEY (eid,time,date,room,floor)
-)
+);
 
+-- Not captured yet:
 -- 12. Each employee must be one and only one of the three kinds of employees: junior, senior or
--- manager.
+-- manager. (CHECK in functions)
 -- 16. If an employee is having a fever, they cannot book a room.
 -- 18. The employee booking the room immediately joins the booked meeting.
 -- 19. If an employee is having a fever, they cannot join a booked meeting.
