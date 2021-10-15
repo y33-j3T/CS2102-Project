@@ -82,12 +82,6 @@ CREATE TABLE Sessions (
     FOREIGN KEY (eid_manager) REFERENCES Managers (eid),
     
     CONSTRAINT valid_stime CHECK (stime >= 0 AND stime <= 23), -- 24 available sessions a day,
-    CONSTRAINT not_resigned_booker CHECK (
-        (SELECT resignedDate FROM Employees E WHERE E.eid = eid_booker) IS NULL
-    ),
-    CONSTRAINT not_resigned_manager CHECK (
-        (SELECT resignedDate FROM Employees E WHERE E.eid = eid_manager) IS NULL
-    )
 );
 
 CREATE TABLE Joins (
@@ -98,11 +92,7 @@ CREATE TABLE Joins (
     floor           INTEGER NOT NULL,
     PRIMARY KEY (eid, stime, sdate, room, floor)
     FOREIGN KEY (eid) REFERENCES Employees (eid),
-    FOREIGN KEY (stime, sdate, room, floor) REFERENCES Sessions (stime, sdate, room, floor),
-    CONSTRAINT not_fever_eid CHECK (
-        eid NOT IN (SELECT eid FROM HealthDeclaration H
-                    WHERE H.eid = eid AND H.ddate = sdate AND H.fever = FALSE)
-    )
+    FOREIGN KEY (stime, sdate, room, floor) REFERENCES Sessions (stime, sdate, room, floor)
 );
 
 CREATE TABLE Updates(
@@ -119,6 +109,7 @@ CREATE TABLE Updates(
 -- uncaptured
 -- 16. If an employee is having a fever, they cannot book a room.
 -- 18. The employee booking the room immediately joins the booked meeting.
+-- 19. If an employee is having a fever, they cannot join a booked meeting.
 -- 21. A manager can only approve a booked meeting in the same department as the manager
 -- 23. Once approved, there should be no more changes in the participants and the participants will definitely come to the meeting on the stipulated day.
 -- 24. A manager from the same department as the meeting room may change the meeting room capacity.
@@ -127,4 +118,5 @@ CREATE TABLE Updates(
 -- 27. An approval can only be made on future meetings.
 -- 28. Every employee must do a daily health declaration.
 -- 31. If the declared temperature is higher than 37.5 Celsius, the employee is having a fever.
+-- 34. When an employee resign, they are no longer allowed to book or approve any meetings.
 -- 35. Contact tracing constraints
