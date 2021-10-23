@@ -1,0 +1,10 @@
+insert into Manager (eid) values (12);
+insert into Manager (eid) values (49);
+insert into Manager (eid) values (48);
+insert into Manager (eid) values (9);
+insert into Manager (eid) values (27);
+insert into Manager (eid) values (13);
+insert into Manager (eid) values (48);
+insert into Manager (eid) values (6);
+insert into Manager (eid) values (27);
+insert into Manager (eid) values (10);
