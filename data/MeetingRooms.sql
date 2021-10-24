@@ -15,7 +15,7 @@ insert into MeetingRooms (room, floor, did, rname) values (9, 3, 4, 'Granja');
 insert into MeetingRooms (room, floor, did, rname) values (6, 7, 4, 'København');
 insert into MeetingRooms (room, floor, did, rname) values (3, 7, 1, 'Kardhiq');
 insert into MeetingRooms (room, floor, did, rname) values (5, 4, 1, 'Tseel');
-insert into MeetingRooms (room, floor, did, rname) values (5, 5, 5, 'Yabuli');
+insert into MeetingRooms (room, floor, did, rname) values (5, 6, 5, 'Yabuli');
 insert into MeetingRooms (room, floor, did, rname) values (10, 5, 4, 'Kibre Mengist');
 insert into MeetingRooms (room, floor, did, rname) values (4, 1, 3, 'Antas');
 insert into MeetingRooms (room, floor, did, rname) values (9, 7, 4, 'Bantaeng');
@@ -27,4 +27,4 @@ insert into MeetingRooms (room, floor, did, rname) values (8, 10, 2, 'Paris 18')
 insert into MeetingRooms (room, floor, did, rname) values (1, 8, 2, 'Genet');
 insert into MeetingRooms (room, floor, did, rname) values (3, 2, 5, 'Serh');
 insert into MeetingRooms (room, floor, did, rname) values (4, 2, 3, 'Toride');
-insert into MeetingRooms (room, floor, did, rname) values (9, 10, 2, 'Barbaza');
+insert into MeetingRooms (room, floor, did, rname) values (9, 9, 2, 'Barbaza');
