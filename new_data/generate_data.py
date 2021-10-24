@@ -131,8 +131,41 @@ with open('HealthDeclaration.sql', 'w') as f:
 q_floor = [1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6]
 q_room =  [1, 1, 2, 2, 3, 3, 2, 2, 3, 3, 4, 4, 5, 5, 1, 1, 1, 1, 2, 2, 3, 3, 4, 4, 2, 2, 3, 3, 4, 4, 5, 5, 2, 2, 3, 3, 3, 3, 5, 5, 5, 5, 1, 1, 2, 2, 3, 3, 5, 5, 5, 5]
 q_eid_manager = [44, 34, 34, 44, 29, 48, 34, 44, 2, 17, 44, 34, 2, 17, 1, 3, 5, 14, 44, 34, 34, 44, 34, 44, 2, 17, 2, 17, 44, 34, 17, 2, 2, 17, 14, 3, 1, 5, 14, 1, 3, 5, 2, 17, 48, 29, 44, 34, 5, 3, 14, 1]
+TIMES = list(range(24))
+sdate = random.choices(DATES, k=len(q_floor))
+stime = random.choices(TIMES, k=len(q_floor))
+seid_booker = random.choices(eid_booker, k=len(q_floor))
+
+# check key constraint
+print(f'[INFO] Session.sql: Correct size is {len(q_floor)}. Generated size is {len(set(list(zip(sdate, stime, q_room, q_floor))))}')
+
+with open('Sessions.sql', 'w') as f:
+    for i in list(zip(sdate, stime, q_room, q_floor, seid_booker, q_eid_manager)):
+        sql = f"INSERT INTO Sessions VALUES ('{i[0]}', {i[1]}, {i[2]}, {i[3]}, {i[4]}, {i[5]});\n"
+        f.write(sql) 
 
 # Joins
+MAX_MEETING_SIZE = 10
+with open('Joins.sql', 'w') as f:
+    for i in list(zip(seid_booker, sdate, stime, q_room, q_floor)):
+        joining_employees = set([i[0]]).union(random.sample(eid, k=MAX_MEETING_SIZE - 1))
+        for j in joining_employees:
+            sql = f"INSERT INTO Joins VALUES ({j}, '{i[1]}', {i[2]}, {i[3]}, {i[4]});\n"
+            f.write(sql)
 
 
 # Updates
+START_DATETIME = datetime.datetime(2020, 9, 1)
+END_DATETIME = datetime.datetime(2021, 9, 30)
+DEFAULT_CAP = 10
+def generate_datetime(start, end):
+    delta = end - start
+    int_delta = (delta.days * 24 * 60 * 60) + delta.seconds
+    random_second = random.randrange(int_delta)
+    return start + datetime.timedelta(seconds=random_second)
+
+with open('Updates.sql', 'w') as f:
+    for i in list(zip(q_room, q_floor, q_eid_manager)):
+        udatetime = generate_datetime(START_DATETIME, END_DATETIME)
+        sql = f"INSERT INTO Updates VALUES ({i[0]}, {i[1]}, '{str(udatetime.date())}', '{udatetime.time()}', {i[2]}, {DEFAULT_CAP});\n"
+        f.write(sql) 
