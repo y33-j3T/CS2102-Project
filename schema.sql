@@ -1,5 +1,5 @@
 DROP TABLE IF EXISTS
-    Employees, Departments, HealthDeclaration, Sessions, MeetingRooms, Booker, Manager, Senior, Junior, Joins, Updates
+    Employees, Departments, HealthDeclaration, Sessions, MeetingRooms, Booker, Manager, Joins, Updates
 CASCADE;
 
 CREATE TABLE Departments (
