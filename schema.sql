@@ -104,12 +104,10 @@ CREATE TABLE Joins (
 CREATE TABLE Updates(
     room            INTEGER,
     floor           INTEGER,
-    -- datetime        DATETIME,
-    date            DATE,
-    time            TIME,
+    datetime        TIMESTAMP,
     eid             INTEGER,
     new_cap         INTEGER,
-    PRIMARY KEY (date,time, room, floor),
+    PRIMARY KEY (datetime, room, floor),
     FOREIGN KEY (eid) REFERENCES Manager (eid)
         ON DELETE SET NULL,
     FOREIGN KEY (room, floor) REFERENCES MeetingRooms (room, floor)
