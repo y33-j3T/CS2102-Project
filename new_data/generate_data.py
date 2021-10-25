@@ -177,5 +177,6 @@ def generate_datetime(start, end):
 with open('Updates.sql', 'w') as f:
     for i in list(zip(q_room, q_floor, q_eid_manager)):
         udatetime = generate_datetime(START_DATETIME, END_DATETIME)
-        sql = f"INSERT INTO Updates VALUES ({i[0]}, {i[1]}, '{str(udatetime.date())}', '{udatetime.time()}', {i[2]}, {DEFAULT_CAP});\n"
+        sql = f"INSERT INTO Updates VALUES ({i[0]}, {i[1]}, '{str(udatetime)}', {i[2]}, {DEFAULT_CAP});\n"
+        # sql = f"INSERT INTO Updates VALUES ({i[0]}, {i[1]}, '{str(udatetime.date())}', '{udatetime.time()}', {i[2]}, {DEFAULT_CAP});\n"
         f.write(sql) 
