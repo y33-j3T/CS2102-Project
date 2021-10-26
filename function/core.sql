@@ -18,17 +18,17 @@ BEGIN
          -- capacity check for the most recent update before that date
     WHERE search_capacity <= (SELECT U2.new_cap
                               FROM Updates U2
-                              WHERE U2.date <= search_date
+                              WHERE date(U2.datetime) <= search_date
                                 AND U2.floor = M.floor
                                 AND U2.room = M.room
-                              ORDER BY U2.date DESC
+                              ORDER BY U2.datetime DESC
                               LIMIT 1)
-      AND U.date = (SELECT U3.date
+      AND U.date = (SELECT date(U3.datetime)
                     FROM Updates U3
-                    WHERE U3.date <= search_date
+                    WHERE date(U3.datetime) <= search_date
                       AND U3.floor = M.floor
                       AND U3.room = M.room
-                    ORDER BY U3.date DESC
+                    ORDER BY U3.datetime DESC
                     LIMIT 1)
       -- Not any slot in the period is taken
       AND NOT EXISTS(SELECT 1

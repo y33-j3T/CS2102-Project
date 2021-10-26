@@ -76,9 +76,9 @@ create or replace function is_under_max_capacity(floor int, room int, stime int,
     returns boolean as
 $$
 declare
-    num_participants int;
+    num_participants     int;
     most_recent_capacity int;
-    is_under boolean;
+    is_under             boolean;
 begin
     num_participants := (SELECT count(*)
                          FROM Joins J
@@ -86,9 +86,9 @@ begin
                            AND J.room = is_under_max_capacity.room
                            AND J.floor = is_under_max_capacity.floor
                            AND J.time = is_under_max_capacity.stime);
-    most_recent_capacity := (SELECT new_cap FROM Updates U
-    --Check this !!!! if can compare between date and datetime
-                             WHERE U.datetime <= is_under_max_capacity.date
+    most_recent_capacity := (SELECT new_cap
+                             FROM Updates U
+                             WHERE date(U.datetime) <= is_under_max_capacity.date
                                AND U.floor = is_under_max_capacity.floor
                                AND U.room = is_under_max_capacity.room
                              ORDER BY U.datetime DESC
