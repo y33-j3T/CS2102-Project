@@ -18,17 +18,17 @@ BEGIN
          -- capacity check for the most recent update before that date
     WHERE search_capacity <= (SELECT U2.new_cap
                               FROM Updates U2
-                              WHERE U2.date <= search_date
+                              WHERE date(U2.datetime) <= search_date
                                 AND U2.floor = M.floor
                                 AND U2.room = M.room
-                              ORDER BY U2.date DESC
+                              ORDER BY U2.datetime DESC
                               LIMIT 1)
-      AND U.date = (SELECT U3.date
+      AND U.date = (SELECT date(U3.datetime)
                     FROM Updates U3
-                    WHERE U3.date <= search_date
+                    WHERE date(U3.datetime) <= search_date
                       AND U3.floor = M.floor
                       AND U3.room = M.room
-                    ORDER BY U3.date DESC
+                    ORDER BY U3.datetime DESC
                     LIMIT 1)
       -- Not any slot in the period is taken
       AND NOT EXISTS(SELECT 1
@@ -50,10 +50,8 @@ CREATE OR REPLACE PROCEDURE book_room(book_floor INT, book_room INT, book_date D
                                       eid_booker INT)
 AS
 $$
-
 declare
     sessions_not_available int;
-    is_booker              boolean;
     curr_time              int;
 BEGIN
     sessions_not_available := (SELECT count(*)
@@ -64,8 +62,7 @@ BEGIN
                                  AND (S.time >= start_time AND S.time < end_time));
 
     curr_time = start_time;
-    is_booker := EXISTS(SELECT 1 FROM Booker B WHERE eid_booker = B.eid);
-    IF is_booker AND sessions_not_available = 0 AND end_time < 24 THEN
+    IF sessions_not_available = 0 AND end_time < 24 THEN
         while curr_time < end_time
             loop
                 INSERT INTO sessions(date, time, room, floor, eid_booker)
@@ -76,8 +73,7 @@ BEGIN
             end loop;
     END IF;
 END;
-$$
-    language plpgsql;
+$$ language plpgsql;
 
 
 -- un-book all session in the period with the correct booker eid (allow not continuous)
@@ -111,9 +107,6 @@ $$
 declare
     curr_time        int;
     sessions_existed int;
-    fever            boolean;
-    is_resigned      boolean;
-    is_eligible      boolean;
 begin
     curr_time := start_time;
     sessions_existed := (SELECT count(*)
@@ -121,15 +114,8 @@ begin
                          WHERE S.date = join_meeting.date
                            AND S.room = join_meeting.room
                            AND S.floor = join_meeting.floor
-                           -- check if the session has been approved
-                           AND S.eid_manager is null
                            AND (S.time >= start_time AND S.time < end_time));
-    -- get the most updated fever status
-    fever := (SELECT fever FROM healthdeclaration HD WHERE HD.eid = join_meeting.eid ORDER BY HD.date DESC LIMIT 1);
-    -- check if the employee resign yet
-    is_resigned := (SELECT resignedDate FROM employees E WHERE E.eid = join_meeting.eid) is not null;
-    is_eligible := not (fever) and not (is_resigned);
-    if sessions_existed = end_time - start_time and is_eligible then
+    if sessions_existed = end_time - start_time then
         while curr_time < end_time
             loop
                 INSERT INTO joins(eid, date, time, room, floor)
@@ -137,42 +123,30 @@ begin
                 curr_time := curr_time + 1;
             end loop;
     end if;
-
 end;
-$$
-    LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 -- remove employee from all meeting session ( allow not continuous)
 CREATE OR REPLACE PROCEDURE leave_meeting(floor INT, room INT, date DATE, start_time INT, end_time INT, eid INT)
 AS
 $$
 declare
-    curr_time   int;
-    is_approved boolean;
+    curr_time int;
 begin
     curr_time := start_time;
     while curr_time < end_time
         loop
-            is_approved := (select eid_manager
-                            from sessions S
-                            where S.floor = leave_meeting.floor
-                              and S.room = leave_meeting.room
-                              and S.date = leave_meeting.date
-                              and S.time = curr_time) is not null;
-            if not is_approved then
-                delete
-                from joins J
-                where J.floor = leave_meeting.floor
-                  and J.room = leave_meeting.room
-                  and J.date = leave_meeting.date
-                  and J.eid = leave_meeting.eid
-                  and J.time = curr_time;
-            end if;
+            delete
+            from joins J
+            where J.floor = leave_meeting.floor
+              and J.room = leave_meeting.room
+              and J.date = leave_meeting.date
+              and J.eid = leave_meeting.eid
+              and J.time = curr_time;
             curr_time := curr_time + 1;
         end loop;
 end;
-$$
-    language plpgsql;
+$$ language plpgsql;
 
 -- approve all meeting sessions within the same department (ignore all that is not from same department)
 -- allow not continuous approval
@@ -180,31 +154,17 @@ CREATE OR REPLACE PROCEDURE approve_meeting(floor INT, room INT, date DATE, star
 AS
 $$
 declare
-    curr_time          int;
-    booker_department  int;
-    manager_department int;
+    curr_time int;
 begin
     curr_time := start_time;
-    manager_department := (SELECT did FROM employees E WHERE E.eid = approve_meeting.eid);
     while curr_time < end_time
         loop
-            booker_department := (SELECT did
-                                  FROM employees E
-                                           JOIN sessions S
-                                                on E.eid = S.eid_booker
-                                  WHERE S.floor = approve_meeting.floor
-                                    AND S.room = approve_meeting.room
-                                    AND S.date = approve_meeting.date
-                                    AND S.time = curr_time
-            );
-            if booker_department = manager_department then
-                update sessions S
-                set eid_manager = eid
-                where S.floor = approve_meeting.floor
-                  AND S.room = approve_meeting.room
-                  AND S.date = approve_meeting.date
-                  AND S.time = curr_time;
-            end if;
+            update sessions S
+            set eid_manager = eid
+            where S.floor = approve_meeting.floor
+              AND S.room = approve_meeting.room
+              AND S.date = approve_meeting.date
+              AND S.time = curr_time;
             curr_time := curr_time + 1;
         end loop;
 end;

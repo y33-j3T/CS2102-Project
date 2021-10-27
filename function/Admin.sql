@@ -167,11 +167,11 @@ BEGIN
     LOOP
         FETCH curs INTO r1;
         EXIT WHEN NOT FOUND;
-        floor := r.floor;
-        room := r.room;
-        date := r.date;
-        start_hr := r.time;
-        eid := r.eid_booker;
+        floor := r1.floor;
+        room := r1.room;
+        date := r1.date;
+        start_hr := r1.time;
+        eid := r1.eid_booker;
         RETURN NEXT;
     END LOOP;
     CLOSE curs;
