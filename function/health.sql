@@ -110,6 +110,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- If an employee is declares fever at day D, activate fever SOP
+DROP TRIGGER IF EXISTS fever_detected ON HealthDeclaration;
 CREATE TRIGGER fever_detected
 AFTER INSERT ON HealthDeclaration
 FOR EACH ROW WHEN (NEW.fever = TRUE)
