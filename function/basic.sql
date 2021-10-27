@@ -50,9 +50,9 @@ CREATE OR REPLACE PROCEDURE change_capacity(floor_number    INTEGER,
                                         datetime_input  TIMESTAMP DEFAULT current_timestamp)
   AS $$
     BEGIN
-      -- IF datetime_input > current_timestamp THEN 
-      --   RAISE EXCEPTION 'datetime input > current timestamp';
-      -- END IF;
+      IF datetime_input < current_timestamp THEN 
+        RAISE EXCEPTION 'changing capacity in the past is nonsense';
+      END IF;
       INSERT INTO Updates(room, floor, datetime, eid, new_cap)
       VALUES(room_number, floor_number, datetime_input, eid, room_capacity);
             -- UPDATE Updates
