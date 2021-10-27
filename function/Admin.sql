@@ -136,7 +136,7 @@ $$ LANGUAGE plpgsql;
     -- Start hour 
     -- Employee ID
 -- The table should be sorted in ascending order of date and start hour.
-CREATE OR REPLACE FUNCTION get_department (IN in_eid INT)
+CREATE OR REPLACE FUNCTION get_employee_depa (IN in_eid INT)
 RETURNS INTEGER AS $$
 BEGIN
     RETURN (SELECT did FROM Employees E WHERE E.eid = in_eid); 
@@ -153,13 +153,21 @@ END
 $$ LANGUAGE plpgsql;
 
 
+CREATE OR REPLACE FUNCTION get_room_department(IN in_room INT, IN in_floor INT)
+RETURNS INTEGER AS $$
+BEGIN
+    RETURN (SELECT did FROM MeetingRooms WHERE room = in_room AND floor = in_floor);
+END;
+$$ LANGUAGE plpgsql;
+
+
 CREATE OR REPLACE FUNCTION view_manager_report (IN start_date DATE, IN in_eid INT)
 RETURNS TABLE(floor INT, room INT, date DATE, start_hr INT, eid INT) AS $$
 DECLARE
-    curs CURSOR FOR (SELECT * FROM Sessions
-                     WHERE eid_manager IS NULL
-                     AND get_department(eid_booker) = get_department(in_eid)
-                     AND eid_booker NOT IN (SELECT S.eid FROM get_resigned(eid_booker) S)
+    curs CURSOR FOR (SELECT * FROM Sessions S
+                     WHERE S.eid_manager IS NULL
+                     AND get_room_department(S.room, S.floor) = get_employee_department(in_eid)
+                     AND (SELECT T.resignedDate FROM get_resigned(eid_booker) T)
                      ORDER BY date, time);
     r1 RECORD;
 BEGIN
@@ -177,5 +185,3 @@ BEGIN
     CLOSE curs;
 END;
 $$ LANGUAGE plpgsql;
-
--- booker have not resigned
