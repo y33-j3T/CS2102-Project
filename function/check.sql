@@ -68,6 +68,7 @@ begin
                       AND S.room = is_meeting_approved.room
                       AND S.floor = is_meeting_approved.floor
                       AND S.time = is_meeting_approved.stime) is not null;
+    return is_approved;
 end;
 $$ language plpgsql;
 
