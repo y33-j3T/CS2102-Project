@@ -62,7 +62,7 @@ declare
 begin
     can_book := is_booker(new.eid_booker)
         and (not is_resigned(new.eid_booker))
-        and (not is_having_fever(new.edi_booker));
+        and (not is_having_fever(new.eid_booker));
     if can_book then
         return new;
     end if;
