@@ -136,7 +136,7 @@ $$ LANGUAGE plpgsql;
     -- Start hour 
     -- Employee ID
 -- The table should be sorted in ascending order of date and start hour.
-CREATE OR REPLACE FUNCTION get_employee_depa (IN in_eid INT)
+CREATE OR REPLACE FUNCTION get_employee_department (IN in_eid INT)
 RETURNS INTEGER AS $$
 BEGIN
     RETURN (SELECT did FROM Employees E WHERE E.eid = in_eid); 
