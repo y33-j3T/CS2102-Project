@@ -34,7 +34,7 @@ BEGIN
         FETCH curs into r;
         EXIT WHEN NOT FOUND;
         eid := r.eid;
-        num_date := (end_date - start_date)::INT - r.num_date;
+        num_date := (end_date - start_date)::INT - r.num_date + 1;
         RETURN NEXT;
     END LOOP;
     CLOSE curs;
@@ -71,9 +71,9 @@ BEGIN
         date := r1.date;
         start_hr := CONCAT(r1.time::text, ':00');
         IF r1.eid_manager IS NULL THEN
-            is_approved := TRUE;
-        ELSE
             is_approved := FALSE;
+        ELSE
+            is_approved := TRUE;
         END IF;
         RETURN NEXT;
     END LOOP;
