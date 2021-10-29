@@ -39,7 +39,7 @@ begin
           AND S.floor = r.floor
           AND S.room = r.room
           AND (((next_update_date is not null) and S.date < next_update_date)
-                OR next_update_date is null);
+            OR next_update_date is null);
     end loop;
     close curs;
     return null;
@@ -140,5 +140,6 @@ begin
 end;
 $$ LANGUAGE plpgsql;
 
-
+-- To Do
+-- Trigger if employee resigned
 
