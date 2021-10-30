@@ -1,8 +1,7 @@
 DROP TRIGGER IF EXISTS remove_bookings_over_capacity ON Updates;
 CREATE TRIGGER remove_bookings_over_capacity
     AFTER INSERT
-    ON Updates
-    FOR EACH ROW
+    ON Updates FOR EACH ROW
 EXECUTE FUNCTION remove_bookings_over_capacity();
 CREATE OR REPLACE FUNCTION remove_bookings_over_capacity()
     RETURNS TRIGGER AS
