@@ -18,7 +18,7 @@ CREATE TABLE Employees (
     resignedDate    DATE DEFAULT NULL,
     did             INTEGER NOT NULL,
     PRIMARY KEY (eid),
-    FOREIGN KEY (did) REFERENCES Departments (did) ON DELETE CASCADE
+    FOREIGN KEY (did) REFERENCES Departments (did) ON DELETE NO ACTION
 );
 
 -- https://www.postgresql.org/docs/9.5/datatype-numeric.html#DATATYPE-FLOAT

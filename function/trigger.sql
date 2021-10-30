@@ -1,8 +1,3 @@
-DROP TRIGGER IF EXISTS remove_bookings_over_capacity ON Updates;
-CREATE TRIGGER remove_bookings_over_capacity
-    AFTER INSERT
-    ON Updates FOR EACH ROW
-EXECUTE FUNCTION remove_bookings_over_capacity();
 CREATE OR REPLACE FUNCTION remove_bookings_over_capacity()
     RETURNS TRIGGER AS
 $$
@@ -45,14 +40,15 @@ begin
 end;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS remove_bookings_over_capacity ON Updates;
+CREATE TRIGGER remove_bookings_over_capacity
+    AFTER INSERT
+    ON Updates
+    FOR EACH ROW
+EXECUTE FUNCTION remove_bookings_over_capacity();
 
 -- Check if the employee can book
-DROP TRIGGER IF EXISTS can_book ON Sessions;
-CREATE TRIGGER can_book
-    BEFORE INSERT
-    ON Sessions
-    FOR EACH ROW
-EXECUTE FUNCTION can_book();
+
 CREATE OR REPLACE FUNCTION can_book()
     RETURNS TRIGGER AS
 $$
@@ -68,15 +64,15 @@ begin
     return null;
 end;
 $$ LANGUAGE plpgsql;
-
--- Check if the employee can approve booking
--- If fail check then delete ? ( currently not)
-DROP TRIGGER IF EXISTS can_approve ON Sessions;
-CREATE TRIGGER can_approve
-    BEFORE UPDATE OF eid_manager
+DROP TRIGGER IF EXISTS can_book ON Sessions;
+CREATE TRIGGER can_book
+    BEFORE INSERT
     ON Sessions
     FOR EACH ROW
-EXECUTE FUNCTION can_approve();
+EXECUTE FUNCTION can_book();
+-- Check if the employee can approve booking
+-- If fail check then delete ? ( currently not)
+
 CREATE OR REPLACE FUNCTION can_approve()
     RETURNS TRIGGER AS
 $$
@@ -85,7 +81,7 @@ declare
 begin
     can_approve := is_manager(new.eid_manager)
         and (not is_resigned(new.eid_manager))
-        and is_same_department(new.eid_manager, old.eid_booker);
+        and is_same_department_as_meeting_room(new.eid_manager, old.floor, old.room);
     if can_approve then
         return new;
     end if;
@@ -93,13 +89,16 @@ begin
 end;
 $$ LANGUAGE plpgsql;
 
--- Check if the meeting about to join is approved
-DROP TRIGGER IF EXISTS can_join_meeting ON Joins;
-CREATE TRIGGER can_join_meeting
-    BEFORE INSERT
-    ON Joins
+
+DROP TRIGGER IF EXISTS can_approve ON Sessions;
+CREATE TRIGGER can_approve
+    BEFORE UPDATE OF eid_manager
+    ON Sessions
     FOR EACH ROW
-EXECUTE FUNCTION can_join_meeting();
+EXECUTE FUNCTION can_approve();
+
+-- Check if the meeting about to join is approved
+
 CREATE OR REPLACE FUNCTION can_join_meeting()
     RETURNS TRIGGER AS
 $$
@@ -118,13 +117,14 @@ begin
 end;
 $$ LANGUAGE plpgsql;
 
--- Check if the meeting about to leave is approved
-DROP TRIGGER IF EXISTS can_leave_meeting ON Joins;
-CREATE TRIGGER can_leave_meeting
-    BEFORE DELETE
+DROP TRIGGER IF EXISTS can_join_meeting ON Joins;
+CREATE TRIGGER can_join_meeting
+    BEFORE INSERT
     ON Joins
     FOR EACH ROW
-EXECUTE FUNCTION can_leave_meeting();
+EXECUTE FUNCTION can_join_meeting();
+-- Check if the meeting about to leave is approved
+
 CREATE OR REPLACE FUNCTION can_leave_meeting()
     RETURNS TRIGGER AS
 $$
@@ -139,6 +139,12 @@ begin
 end;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS can_leave_meeting ON Joins;
+CREATE TRIGGER can_leave_meeting
+    BEFORE DELETE
+    ON Joins
+    FOR EACH ROW
+EXECUTE FUNCTION can_leave_meeting();
 -- To Do
 -- Trigger if employee resigned
 
