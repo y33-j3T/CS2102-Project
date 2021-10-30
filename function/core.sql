@@ -42,7 +42,7 @@ BEGIN
     ORDER BY U.new_cap, M.floor, M.room;
 END;
 $$ LANGUAGE plpgsql;
-SELECT search_room(5, current_date, 2, 7);
+-- SELECT search_room(5, current_date, 2, 7);
 
 
 -- eid of the employee booking the room
