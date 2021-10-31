@@ -74,27 +74,38 @@ $$ LANGUAGE plpgsql;
 -- Fever SOP:
 -- If employee is booker, delete Sessions where he booked, approved or not.
 -- Else remove the employee from all future Joins, approved or not.
--- Get employees from contact_tracing() and remove them from Joins in day D to day D+7
+-- Get close contacts and do the same but for day D to day D+7 only
 CREATE OR REPLACE FUNCTION fever_sop() RETURNS TRIGGER AS $$
 DECLARE
     fever_eid INTEGER;
 BEGIN
     fever_eid := NEW.eid;
 
+    -- for fever employee
     IF is_booker(fever_eid) THEN
-        -- employee is booker, delete Sessions where he booked, approved or not
+        -- employee is booker, delete Sessions where he booked
         DELETE FROM Sessions
         WHERE eid_booker = fever_eid
         AND date > CURRENT_DATE;
     ELSE
-        -- remove employee from all future Joins, approved or not
+        -- remove employee from all future Joins
         DELETE FROM Joins j
         WHERE j.eid = fever_eid
         AND date > CURRENT_DATE;
     END IF;
 
-    -- remove close contacts from Joins in day D to day D+7
+    -- for close contacts
     WITH CloseContacts AS (SELECT close_contact_eid FROM contact_tracing(fever_eid))
+    -- close contact is booker, delete Session he booked in day D to day D+7
+    DELETE FROM Sessions s
+    WHERE EXISTS (
+        SELECT 1
+        FROM CloseContacts c
+        WHERE s.eid_booker = c.close_contact_eid
+        AND s.date >= CURRENT_DATE
+        AND s.date <= CURRENT_DATE + 7
+    )
+    -- remove close contacts from Joins in day D to day D+7
     DELETE FROM Joins j
     WHERE EXISTS (
         SELECT 1
@@ -103,6 +114,7 @@ BEGIN
         AND j.date >= CURRENT_DATE
         AND j.date <= CURRENT_DATE + 7
     );
+
 
     RETURN NULL;
 END;
