@@ -59,7 +59,10 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION view_booking_report (IN start_date DATE, IN in_eid INT)
 RETURNS TABLE(floor INT, room INT, date DATE, start_hr TEXT, is_approved BOOLEAN) AS $$
 DECLARE
-    curs CURSOR FOR (SELECT * FROM Sessions WHERE eid_booker = in_eid ORDER BY date, time);
+    curs CURSOR FOR (SELECT * FROM Sessions S
+                     WHERE S.eid_booker = view_booking_report.in_eid 
+                     AND S.date >= view_booking_report.start_date
+                     ORDER BY date, time);
     r1 RECORD;
 BEGIN
     OPEN curs;
@@ -167,7 +170,7 @@ DECLARE
     curs CURSOR FOR (SELECT * FROM Sessions S
                      WHERE S.eid_manager IS NULL
                      AND get_room_department(S.room, S.floor) = get_employee_department(in_eid)
-                     AND (SELECT T.resignedDate FROM get_resigned(eid_booker) T)
+                     AND (SELECT T.resignedDate FROM get_resigned(eid_booker) T) IS NULL
                      ORDER BY date, time);
     r1 RECORD;
 BEGIN
