@@ -7,17 +7,16 @@ declare
     next_update_date date := (SELECT date(U.datetime)
                               FROM updates U
                               WHERE U.datetime > NEW.datetime AND U.room = NEW.room AND U.floor = NEW.floor
-                              ORDER BY U.date
+                              ORDER BY U.datetime
                               LIMIT 1);
     curs CURSOR FOR (SELECT S.time, S.date, S.floor, S.room, COUNT(J.eid)
                      FROM sessions S
-                              JOIN Joins J
-                                   ON S.time = J.time AND S.date = J.date
-                                       AND S.floor = J.floor AND S.room = J.room
+                     JOIN Joins J
+                     ON S.time = J.time AND S.date = J.date AND S.floor = J.floor AND S.room = J.room
                      WHERE S.floor = NEW.floor AND S.room = NEW.room
-                       AND (S.date >= curr_date -- Future Sessions
-                         AND (S.date >= NEW.date)) -- After the update date
-
+                     AND (S.date >= curr_date -- Future Sessions
+                     AND (S.date >= date(NEW.datetime))) -- After the update date
+                     GROUP BY S.time, S.date, S.floor, S.room
                      HAVING COUNT(J.eid) > NEW.new_cap);
     r                RECORD;
 begin
