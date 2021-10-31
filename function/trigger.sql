@@ -55,8 +55,9 @@ declare
     can_book boolean;
 begin
     can_book := is_booker(new.eid_booker)
-        and (not is_resigned(new.eid_booker))
-        and (not is_having_fever(new.eid_booker));
+        and not is_resigned(new.eid_booker)
+        and not is_having_fever(new.eid_booker)
+        and not is_meeting_exist(new.floor, new.room, new.time, new.date);
     if can_book then
         return new;
     end if;
@@ -134,8 +135,8 @@ declare
 begin
     can_leave_meeting := (not is_meeting_approved(old.floor, old.room, old.time, old.date))
         and is_future_meeting(new.date);
-    
-    if can_leave_meeting then
+
+    if can_leave_meeting or not is_meeting_exist(old.floor, old.room, old.time, old.date) then
         return old;
     end if;
     return null;
