@@ -53,16 +53,22 @@ CREATE OR REPLACE PROCEDURE change_capacity(floor_number    INTEGER,
                                         eid             INTEGER,
                                         datetime_input  TIMESTAMP DEFAULT current_timestamp)
   AS $$
+    DECLARE
+        can_approve BOOLEAN;
     BEGIN
-      IF datetime_input < current_timestamp THEN 
+    can_approve := is_manager(eid)
+        AND (not is_resigned(eid))
+        AND is_same_department_as_meeting_room(eid, floor_number, room_number);
+
+    IF datetime_input < current_timestamp THEN 
         RAISE EXCEPTION 'changing capacity in the past is nonsense';
-      END IF;
-      INSERT INTO Updates(room, floor, datetime, eid, new_cap)
-      VALUES(room_number, floor_number, datetime_input, eid, room_capacity);
-            -- UPDATE Updates
-            -- SET datetime = date,
-            --     new_cap = room_capacity
-            -- WHERE room = room_number AND floor = floor_number; 
+    END IF;
+
+    IF NOT can_approve THEN RAISE EXCEPTION 'This employee cannot change capacity of this room';
+    END IF;
+
+    INSERT INTO Updates(room, floor, datetime, eid, new_cap)
+    VALUES(room_number, floor_number, datetime_input, eid, room_capacity);
     END;
   $$ LANGUAGE 'plpgsql';
 
