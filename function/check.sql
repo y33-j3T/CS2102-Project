@@ -51,7 +51,23 @@ $$
 declare
     is_same boolean;
 begin
-    is_same := (SELECT did FROM employees E WHERE E.eid = eid1) = (SELECT did FROM employees E WHERE E.eid = eid2);
+    is_same := (SELECT did FROM employees E WHERE E.eid = eid1)
+        = (SELECT did FROM employees E WHERE E.eid = eid2);
+    return is_same;
+end;
+$$ language plpgsql;
+
+create or replace function is_same_department_as_meeting_room(eid int, floor int, room int)
+    returns boolean as
+$$
+declare
+    is_same boolean;
+begin
+    is_same := (SELECT did FROM employees E WHERE E.eid = is_same_department_as_meeting_room.eid)
+        = (SELECT did
+           FROM meetingrooms M
+           WHERE M.floor = is_same_department_as_meeting_room.floor
+             AND M.room = is_same_department_as_meeting_room.room);
     return is_same;
 end;
 $$ language plpgsql;
@@ -68,6 +84,7 @@ begin
                       AND S.room = is_meeting_approved.room
                       AND S.floor = is_meeting_approved.floor
                       AND S.time = is_meeting_approved.stime) is not null;
+    return is_approved;
 end;
 $$ language plpgsql;
 

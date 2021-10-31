@@ -11,6 +11,7 @@ CREATE OR REPLACE FUNCTION search_room(search_capacity INT, search_date DATE, st
 AS
 $$
 BEGIN
+    RETURN QUERY
     SELECT M.floor, M.room, M.did, U.new_cap
     FROM Updates U
              JOIN MeetingRooms M
@@ -23,13 +24,13 @@ BEGIN
                                 AND U2.room = M.room
                               ORDER BY U2.datetime DESC
                               LIMIT 1)
-      AND U.date = (SELECT date(U3.datetime)
-                    FROM Updates U3
-                    WHERE date(U3.datetime) <= search_date
-                      AND U3.floor = M.floor
-                      AND U3.room = M.room
-                    ORDER BY U3.datetime DESC
-                    LIMIT 1)
+      AND U.datetime = (SELECT U3.datetime
+                        FROM Updates U3
+                        WHERE date(U3.datetime) <= search_date
+                          AND U3.floor = M.floor
+                          AND U3.room = M.room
+                        ORDER BY U3.datetime DESC
+                        LIMIT 1)
       -- Not any slot in the period is taken
       AND NOT EXISTS(SELECT 1
                      FROM sessions S
@@ -41,6 +42,7 @@ BEGIN
     ORDER BY U.new_cap, M.floor, M.room;
 END;
 $$ LANGUAGE plpgsql;
+-- SELECT search_room(5, current_date, 2, 7);
 
 
 -- eid of the employee booking the room
@@ -119,7 +121,7 @@ begin
         while curr_time < end_time
             loop
                 INSERT INTO joins(eid, date, time, room, floor)
-                VALUES (eid, date, curr_time, room, floor);
+                VALUES (join_meeting.eid, join_meeting.date, curr_time, join_meeting.room, join_meeting.floor);
                 curr_time := curr_time + 1;
             end loop;
     end if;

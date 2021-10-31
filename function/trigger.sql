@@ -1,30 +1,23 @@
-DROP TRIGGER IF EXISTS remove_bookings_over_capacity ON Updates;
-CREATE TRIGGER remove_bookings_over_capacity
-    AFTER INSERT
-    ON Updates
-    FOR EACH ROW
-EXECUTE FUNCTION remove_bookings_over_capacity();
 CREATE OR REPLACE FUNCTION remove_bookings_over_capacity()
     RETURNS TRIGGER AS
 $$
 declare
-    curr_date        date := (SELECT CURRENT_DATE);
     --Get the nearest update after this
     next_update_date date := (SELECT date(U.datetime)
                               FROM updates U
                               WHERE U.datetime > NEW.datetime AND U.room = NEW.room AND U.floor = NEW.floor
-                              ORDER BY U.date
+                              ORDER BY U.datetime
                               LIMIT 1);
+    capacity int:= NEW.new_cap;
     curs CURSOR FOR (SELECT S.time, S.date, S.floor, S.room, COUNT(J.eid)
                      FROM sessions S
-                              JOIN Joins J
-                                   ON S.time = J.time AND S.date = J.date
-                                       AND S.floor = J.floor AND S.room = J.room
+                     JOIN Joins J
+                     ON S.time = J.time AND S.date = J.date AND S.floor = J.floor AND S.room = J.room
                      WHERE S.floor = NEW.floor AND S.room = NEW.room
-                       AND (S.date >= curr_date -- Future Sessions
-                         AND (S.date >= NEW.date)) -- After the update date
-
-                     HAVING COUNT(J.eid) > NEW.new_cap);
+                     AND S.date >= CURRENT_DATE -- Future Sessions
+                     AND (S.date >= date(NEW.datetime)) -- After the update date
+                     GROUP BY S.time, S.date, S.floor, S.room
+                     HAVING COUNT(J.eid) > capacity);
     r                RECORD;
 begin
     open curs;
@@ -46,14 +39,15 @@ begin
 end;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS remove_bookings_over_capacity ON Updates;
+CREATE TRIGGER remove_bookings_over_capacity
+    AFTER INSERT
+    ON Updates
+    FOR EACH ROW
+EXECUTE FUNCTION remove_bookings_over_capacity();
 
 -- Check if the employee can book
-DROP TRIGGER IF EXISTS can_book ON Sessions;
-CREATE TRIGGER can_book
-    BEFORE INSERT
-    ON Sessions
-    FOR EACH ROW
-EXECUTE FUNCTION can_book();
+
 CREATE OR REPLACE FUNCTION can_book()
     RETURNS TRIGGER AS
 $$
@@ -62,22 +56,22 @@ declare
 begin
     can_book := is_booker(new.eid_booker)
         and (not is_resigned(new.eid_booker))
-        and (not is_having_fever(new.edi_booker));
+        and (not is_having_fever(new.eid_booker));
     if can_book then
         return new;
     end if;
     return null;
 end;
 $$ LANGUAGE plpgsql;
-
--- Check if the employee can approve booking
--- If fail check then delete ? ( currently not)
-DROP TRIGGER IF EXISTS can_approve ON Sessions;
-CREATE TRIGGER can_approve
-    BEFORE UPDATE OF eid_manager
+DROP TRIGGER IF EXISTS can_book ON Sessions;
+CREATE TRIGGER can_book
+    BEFORE INSERT
     ON Sessions
     FOR EACH ROW
-EXECUTE FUNCTION can_approve();
+EXECUTE FUNCTION can_book();
+-- Check if the employee can approve booking
+-- If fail check then delete ? ( currently not)
+
 CREATE OR REPLACE FUNCTION can_approve()
     RETURNS TRIGGER AS
 $$
@@ -86,7 +80,7 @@ declare
 begin
     can_approve := is_manager(new.eid_manager)
         and (not is_resigned(new.eid_manager))
-        and is_same_department(new.eid_manager, old.eid_booker);
+        and is_same_department_as_meeting_room(new.eid_manager, old.floor, old.room);
     if can_approve then
         return new;
     end if;
@@ -94,13 +88,16 @@ begin
 end;
 $$ LANGUAGE plpgsql;
 
--- Check if the meeting about to join is approved
-DROP TRIGGER IF EXISTS can_join_meeting ON Joins;
-CREATE TRIGGER can_join_meeting
-    BEFORE INSERT
-    ON Joins
+
+DROP TRIGGER IF EXISTS can_approve ON Sessions;
+CREATE TRIGGER can_approve
+    BEFORE UPDATE OF eid_manager
+    ON Sessions
     FOR EACH ROW
-EXECUTE FUNCTION can_join_meeting();
+EXECUTE FUNCTION can_approve();
+
+-- Check if the meeting about to join is approved
+
 CREATE OR REPLACE FUNCTION can_join_meeting()
     RETURNS TRIGGER AS
 $$
@@ -119,13 +116,14 @@ begin
 end;
 $$ LANGUAGE plpgsql;
 
--- Check if the meeting about to leave is approved
-DROP TRIGGER IF EXISTS can_leave_meeting ON Joins;
-CREATE TRIGGER can_leave_meeting
-    BEFORE DELETE
+DROP TRIGGER IF EXISTS can_join_meeting ON Joins;
+CREATE TRIGGER can_join_meeting
+    BEFORE INSERT
     ON Joins
     FOR EACH ROW
-EXECUTE FUNCTION can_leave_meeting();
+EXECUTE FUNCTION can_join_meeting();
+-- Check if the meeting about to leave is approved
+
 CREATE OR REPLACE FUNCTION can_leave_meeting()
     RETURNS TRIGGER AS
 $$
@@ -140,6 +138,12 @@ begin
 end;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS can_leave_meeting ON Joins;
+CREATE TRIGGER can_leave_meeting
+    BEFORE DELETE
+    ON Joins
+    FOR EACH ROW
+EXECUTE FUNCTION can_leave_meeting();
 -- To Do
 -- Trigger if employee resigned
 
