@@ -2,22 +2,22 @@ CREATE OR REPLACE FUNCTION remove_bookings_over_capacity()
     RETURNS TRIGGER AS
 $$
 declare
-    curr_date        date := (SELECT CURRENT_DATE);
     --Get the nearest update after this
     next_update_date date := (SELECT date(U.datetime)
                               FROM updates U
                               WHERE U.datetime > NEW.datetime AND U.room = NEW.room AND U.floor = NEW.floor
                               ORDER BY U.datetime
                               LIMIT 1);
+    capacity int:= NEW.new_cap;
     curs CURSOR FOR (SELECT S.time, S.date, S.floor, S.room, COUNT(J.eid)
                      FROM sessions S
                      JOIN Joins J
                      ON S.time = J.time AND S.date = J.date AND S.floor = J.floor AND S.room = J.room
                      WHERE S.floor = NEW.floor AND S.room = NEW.room
-                     AND (S.date >= curr_date -- Future Sessions
-                     AND (S.date >= date(NEW.datetime))) -- After the update date
+                     AND S.date >= CURRENT_DATE -- Future Sessions
+                     AND (S.date >= date(NEW.datetime)) -- After the update date
                      GROUP BY S.time, S.date, S.floor, S.room
-                     HAVING COUNT(J.eid) > NEW.new_cap);
+                     HAVING COUNT(J.eid) > capacity);
     r                RECORD;
 begin
     open curs;
