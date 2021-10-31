@@ -114,3 +114,31 @@ begin
     return is_under;
 end;
 $$ language plpgsql;
+
+create or replace function is_meeting_exist(floor int, room int, stime int, date date)
+    returns boolean as
+$$
+declare
+    is_there boolean;
+begin
+    is_there := EXISTS(SELECT 1
+                    FROM sessions S
+                    WHERE S.date = is_meeting_exist.date
+                      AND S.room = is_meeting_exist.room
+                      AND S.floor = is_meeting_exist.floor
+                      AND S.time = is_meeting_exist.stime);
+    return is_there;
+end;
+$$ language plpgsql;
+
+create or replace function is_future_meeting( date date)
+    returns boolean as
+$$
+declare
+    is_future boolean;
+begin
+    is_future := date > CURRENT_DATE;
+    return is_future;
+end;
+$$ language plpgsql;
+
