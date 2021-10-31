@@ -129,3 +129,29 @@ $$ LANGUAGE 'plpgsql';
 -- CALL remove_employee(2, '2021-10-20');
 -- We should keep the eid in booker and manager to keep track?
 -- not allow input date > current date
+
+CREATE OR REPLACE FUNCTION remove_employee_from_future_record()
+    RETURNS TRIGGER AS 
+$$
+BEGIN
+    -- Update session to non-approved if resigned employee is a approval
+    -- DELETE FROM Sessions WHERE eid_manager = NEW.eid AND Sessions.date > NEW.resignedDate;
+    UPDATE Sessions
+    SET eid_manager = null
+    WHERE eid_manager = NEW.eid AND Sessions.date > NEW.resignedDate;
+
+    -- remove session if resigned employee is a booker
+    DELETE FROM Sessions WHERE eid_booker = NEW.eid AND Sessions.date > NEW.resignedDate;
+
+    -- remove employee from future meeting
+    DELETE FROM Joins WHERE eid = NEW.eid AND Joins.date > NEW.resignedDate;
+
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS resignation_sop ON Employees;
+CREATE TRIGGER resignation_sop
+    AFTER UPDATE OF resignedDate ON Employees
+    FOR EACH ROW
+EXECUTE FUNCTION remove_employee_from_future_record();

@@ -144,6 +144,4 @@ CREATE TRIGGER can_leave_meeting
     ON Joins
     FOR EACH ROW
 EXECUTE FUNCTION can_leave_meeting();
--- To Do
--- Trigger if employee resigned
 
