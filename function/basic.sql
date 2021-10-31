@@ -53,16 +53,22 @@ CREATE OR REPLACE PROCEDURE change_capacity(floor_number    INTEGER,
                                         eid             INTEGER,
                                         datetime_input  TIMESTAMP DEFAULT current_timestamp)
   AS $$
+    DECLARE
+        can_approve BOOLEAN;
     BEGIN
-      IF datetime_input < current_timestamp THEN 
+    can_approve := is_manager(eid)
+        AND (not is_resigned(eid))
+        AND is_same_department_as_meeting_room(eid, floor_number, room_number);
+
+    IF datetime_input < current_timestamp THEN 
         RAISE EXCEPTION 'changing capacity in the past is nonsense';
-      END IF;
-      INSERT INTO Updates(room, floor, datetime, eid, new_cap)
-      VALUES(room_number, floor_number, datetime_input, eid, room_capacity);
-            -- UPDATE Updates
-            -- SET datetime = date,
-            --     new_cap = room_capacity
-            -- WHERE room = room_number AND floor = floor_number; 
+    END IF;
+
+    IF NOT can_approve THEN RAISE EXCEPTION 'This employee cannot change capacity of this room';
+    END IF;
+
+    INSERT INTO Updates(room, floor, datetime, eid, new_cap)
+    VALUES(room_number, floor_number, datetime_input, eid, room_capacity);
     END;
   $$ LANGUAGE 'plpgsql';
 
@@ -129,3 +135,29 @@ $$ LANGUAGE 'plpgsql';
 -- CALL remove_employee(2, '2021-10-20');
 -- We should keep the eid in booker and manager to keep track?
 -- not allow input date > current date
+
+CREATE OR REPLACE FUNCTION remove_employee_from_future_record()
+    RETURNS TRIGGER AS 
+$$
+BEGIN
+    -- Update session to non-approved if resigned employee is a approval
+    -- DELETE FROM Sessions WHERE eid_manager = NEW.eid AND Sessions.date > NEW.resignedDate;
+    UPDATE Sessions
+    SET eid_manager = null
+    WHERE eid_manager = NEW.eid AND Sessions.date > NEW.resignedDate;
+
+    -- remove session if resigned employee is a booker
+    DELETE FROM Sessions WHERE eid_booker = NEW.eid AND Sessions.date > NEW.resignedDate;
+
+    -- remove employee from future meeting
+    DELETE FROM Joins WHERE eid = NEW.eid AND Joins.date > NEW.resignedDate;
+
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS resignation_sop ON Employees;
+CREATE TRIGGER resignation_sop
+    AFTER UPDATE OF resignedDate ON Employees
+    FOR EACH ROW
+EXECUTE FUNCTION remove_employee_from_future_record();

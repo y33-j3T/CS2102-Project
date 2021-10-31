@@ -8,14 +8,14 @@ declare
                               WHERE U.datetime > NEW.datetime AND U.room = NEW.room AND U.floor = NEW.floor
                               ORDER BY U.datetime
                               LIMIT 1);
-    capacity int:= NEW.new_cap;
+    capacity         int  := NEW.new_cap;
     curs CURSOR FOR (SELECT S.time, S.date, S.floor, S.room, COUNT(J.eid)
                      FROM sessions S
-                     JOIN Joins J
-                     ON S.time = J.time AND S.date = J.date AND S.floor = J.floor AND S.room = J.room
+                              JOIN Joins J
+                                   ON S.time = J.time AND S.date = J.date AND S.floor = J.floor AND S.room = J.room
                      WHERE S.floor = NEW.floor AND S.room = NEW.room
-                     AND S.date >= CURRENT_DATE -- Future Sessions
-                     AND (S.date >= date(NEW.datetime)) -- After the update date
+                       AND S.date >= CURRENT_DATE         -- Future Sessions
+                       AND (S.date >= date(NEW.datetime)) -- After the update date
                      GROUP BY S.time, S.date, S.floor, S.room
                      HAVING COUNT(J.eid) > capacity);
     r                RECORD;
@@ -80,7 +80,8 @@ declare
 begin
     can_approve := is_manager(new.eid_manager)
         and (not is_resigned(new.eid_manager))
-        and is_same_department_as_meeting_room(new.eid_manager, old.floor, old.room);
+        and is_same_department_as_meeting_room(new.eid_manager, old.floor, old.room)
+        and is_meeting_exist(old.floor, old.room, old.time, old.date);
     if can_approve then
         return new;
     end if;
@@ -104,11 +105,12 @@ $$
 declare
     can_join_meeting boolean;
 begin
-    can_join_meeting :=
-                (not is_meeting_approved(new.floor, new.room, new.time, new.date))
-                and (not is_having_fever(new.eid))
-                and (not is_resigned(new.eid))
-                and is_under_max_capacity(new.floor, new.room, new.time, new.date);
+    can_join_meeting := is_meeting_exist(new.floor, new.room, new.time, new.date)
+        and not is_meeting_approved(new.floor, new.room, new.time, new.date)
+        and (not is_having_fever(new.eid))
+        and (not is_resigned(new.eid))
+        and is_under_max_capacity(new.floor, new.room, new.time, new.date)
+        and is_future_meeting(new.date);
     if can_join_meeting then
         return new;
     end if;
@@ -130,7 +132,9 @@ $$
 declare
     can_leave_meeting boolean;
 begin
-    can_leave_meeting := (not is_meeting_approved(old.floor, old.room, old.time, old.date));
+    can_leave_meeting := (not is_meeting_approved(old.floor, old.room, old.time, old.date))
+        and is_future_meeting(new.date);
+    
     if can_leave_meeting then
         return old;
     end if;
@@ -144,6 +148,4 @@ CREATE TRIGGER can_leave_meeting
     ON Joins
     FOR EACH ROW
 EXECUTE FUNCTION can_leave_meeting();
--- To Do
--- Trigger if employee resigned
 
