@@ -198,7 +198,7 @@ BEGIN
                   WHERE s.eid_booker = c.close_contact_eid
                     AND s.date >= CURRENT_DATE
                     AND s.date <= CURRENT_DATE + 7
-              )
+              );
     -- remove close contacts from Joins in day D to day D+7
     DELETE
     FROM Joins j
