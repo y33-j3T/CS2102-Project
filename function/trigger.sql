@@ -57,10 +57,13 @@ begin
     can_book := is_booker(new.eid_booker)
         and not is_resigned(new.eid_booker)
         and not is_having_fever(new.eid_booker)
+        and is_future_meeting(new.date)
         and not is_meeting_exist(new.floor, new.room, new.time, new.date);
     if can_book then
         return new;
     end if;
+    -- Not sure why but if meeting exist cannot raise exception
+    RAISE NOTICE 'This booking session cannot be completed';
     return null;
 end;
 $$ LANGUAGE plpgsql;
@@ -82,10 +85,13 @@ begin
     can_approve := is_manager(new.eid_manager)
         and (not is_resigned(new.eid_manager))
         and is_same_department_as_meeting_room(new.eid_manager, old.floor, old.room)
+        and is_future_meeting(old.date)
         and is_meeting_exist(old.floor, old.room, old.time, old.date);
+
     if can_approve then
         return new;
     end if;
+    RAISE NOTICE 'The approval for this booking session cannot be completed';
     return old;
 end;
 $$ LANGUAGE plpgsql;
@@ -115,6 +121,7 @@ begin
     if can_join_meeting then
         return new;
     end if;
+    RAISE NOTICE 'This employee cannot join this session';
     return null;
 end;
 $$ LANGUAGE plpgsql;
@@ -134,11 +141,14 @@ declare
     can_leave_meeting boolean;
 begin
     can_leave_meeting := (not is_meeting_approved(old.floor, old.room, old.time, old.date))
-        and is_future_meeting(new.date);
+        and is_future_meeting(old.date);
 
+    --Because this trigger will also be used by ON DELETE CASCADE of the Joins table
+    --Assume that the no employee will be deleted
     if can_leave_meeting or not is_meeting_exist(old.floor, old.room, old.time, old.date) then
         return old;
     end if;
+    RAISE NOTICE 'This employee cannot leave this session';
     return null;
 end;
 $$ LANGUAGE plpgsql;
@@ -150,3 +160,93 @@ CREATE TRIGGER can_leave_meeting
     FOR EACH ROW
 EXECUTE FUNCTION can_leave_meeting();
 
+
+-- Fever SOP:
+-- If employee is booker, delete Sessions where he booked, approved or not.
+-- Else remove the employee from all future Joins, approved or not.
+-- Get close contacts and do the same but for day D to day D+7 only
+CREATE OR REPLACE FUNCTION fever_sop() RETURNS TRIGGER AS
+$$
+DECLARE
+    fever_eid INTEGER;
+BEGIN
+    fever_eid := NEW.eid;
+
+    -- for fever employee
+    IF is_booker(fever_eid) THEN
+        -- employee is booker, delete Sessions where he booked
+        DELETE
+        FROM Sessions
+        WHERE eid_booker = fever_eid
+          AND date > CURRENT_DATE;
+    ELSE
+        -- remove employee from all future Joins
+        DELETE
+        FROM Joins j
+        WHERE j.eid = fever_eid
+          AND date > CURRENT_DATE;
+    END IF;
+
+    -- for close contacts
+    WITH CloseContacts AS (SELECT close_contact_eid FROM contact_tracing(fever_eid))
+         -- close contact is booker, delete Session he booked in day D to day D+7
+    DELETE
+    FROM Sessions s
+    WHERE EXISTS(
+                  SELECT 1
+                  FROM CloseContacts c
+                  WHERE s.eid_booker = c.close_contact_eid
+                    AND s.date >= CURRENT_DATE
+                    AND s.date <= CURRENT_DATE + 7
+              );
+    -- remove close contacts from Joins in day D to day D+7
+    DELETE
+    FROM Joins j
+    WHERE EXISTS(
+                  SELECT 1
+                  FROM CloseContacts c
+                  WHERE j.eid = c.close_contact_eid
+                    AND j.date >= CURRENT_DATE
+                    AND j.date <= CURRENT_DATE + 7
+              );
+
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- If an employee is declares fever at day D, activate fever SOP
+DROP TRIGGER IF EXISTS fever_detected ON HealthDeclaration;
+CREATE TRIGGER fever_detected
+    AFTER INSERT
+    ON HealthDeclaration
+    FOR EACH ROW
+    WHEN (NEW.fever = TRUE)
+EXECUTE FUNCTION fever_sop();
+
+
+CREATE OR REPLACE FUNCTION remove_employee_from_future_record()
+    RETURNS TRIGGER AS 
+$$
+BEGIN
+    -- Update session to non-approved if resigned employee is a approval
+    -- DELETE FROM Sessions WHERE eid_manager = NEW.eid AND Sessions.date > NEW.resignedDate;
+    UPDATE Sessions
+    SET eid_manager = null
+    WHERE eid_manager = NEW.eid AND Sessions.date > NEW.resignedDate;
+
+    -- remove session if resigned employee is a booker
+    DELETE FROM Sessions WHERE eid_booker = NEW.eid AND Sessions.date > NEW.resignedDate;
+
+    -- remove employee from future meeting
+    DELETE FROM Joins WHERE eid = NEW.eid AND Joins.date > NEW.resignedDate;
+
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS resignation_sop ON Employees;
+CREATE TRIGGER resignation_sop
+    AFTER UPDATE OF resignedDate ON Employees
+    FOR EACH ROW
+EXECUTE FUNCTION remove_employee_from_future_record();
