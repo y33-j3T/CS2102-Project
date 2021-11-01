@@ -1,3 +1,7 @@
+DROP TRIGGER IF EXISTS can_join_meeting ON Joins;
+DROP TRIGGER IF EXISTS can_book ON Sessions;
+DROP TRIGGER IF EXISTS can_approve ON Sessions;
+DROP TRIGGER IF EXISTS can_leave_meeting ON Joins;
 CREATE OR REPLACE FUNCTION remove_bookings_over_capacity()
     RETURNS TRIGGER AS
 $$
@@ -112,7 +116,7 @@ EXECUTE FUNCTION fever_sop();
 
 
 CREATE OR REPLACE FUNCTION remove_employee_from_future_record()
-    RETURNS TRIGGER AS 
+    RETURNS TRIGGER AS
 $$
 BEGIN
     -- Update session to non-approved if resigned employee is a approval
@@ -133,7 +137,8 @@ $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS resignation_sop ON Employees;
 CREATE TRIGGER resignation_sop
-    AFTER UPDATE OF resignedDate ON Employees
+    AFTER UPDATE OF resignedDate
+    ON Employees
     FOR EACH ROW
 EXECUTE FUNCTION remove_employee_from_future_record();
 

@@ -78,6 +78,8 @@ BEGIN
                 VALUES (eid_booker, book_date, curr_time, book_room, book_floor);
                 curr_time := curr_time + 1;
             end loop;
+    else
+        RAISE NOTICE 'This booking cannot be completed';
     end if;
 END;
 $$ language plpgsql;
@@ -143,6 +145,8 @@ begin
                 end if;
                 curr_time := curr_time + 1;
             end loop;
+    else
+        RAISE NOTICE 'This employee cannot join this session';
     end if;
 end;
 $$ LANGUAGE plpgsql;
@@ -170,6 +174,8 @@ begin
                   and J.date = leave_meeting.date
                   and J.eid = leave_meeting.eid
                   and J.time = curr_time;
+            else
+                RAISE NOTICE 'This employee cannot leave this session';
             end if;
 
             curr_time := curr_time + 1;
@@ -191,7 +197,7 @@ begin
     if is_manager(eid)
         and (not is_resigned(eid))
         and is_same_department_as_meeting_room(eid, floor, room)
-        and is_future_meeting(date)then
+        and is_future_meeting(date) then
         while curr_time < end_time
             loop
                 update sessions S
@@ -202,6 +208,8 @@ begin
                   AND S.time = curr_time;
                 curr_time := curr_time + 1;
             end loop;
+    else
+        RAISE NOTICE 'The approval for this booking session cannot be completed';
     end if;
 
 end;
