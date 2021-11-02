@@ -90,6 +90,7 @@ BEGIN
                     AND s.date <= CURRENT_DATE + 7
               );
     -- remove close contacts from Joins in day D to day D+7
+    WITH CloseContacts AS (SELECT close_contact_eid FROM contact_tracing(fever_eid))
     DELETE
     FROM Joins j
     WHERE EXISTS(
