@@ -1,6 +1,6 @@
 -- non_compliance
-SELECT * from non_compliance ('2021-01-01', '2021-01-31') ORDER BY num_date DESC, eid;
-select eid,  count(*) from healthdeclaration where date >= '2021-01-01' and date <= '2021-01-31' group by eid order by count, eid;
+SELECT * from non_compliance ('2021-01-01', '2021-01-01') ORDER BY num_date DESC, eid;
+select eid,  count(*) from healthdeclaration where date >= '2021-01-01' and date <= '2021-01-01' group by eid order by count, eid;
 
 -- view_booking_report
 -- 2nd test case shows that one of the date return is BEFORE given start date
@@ -31,55 +31,57 @@ order by s.date, s.time;
 
 
 -- Test data
--- Add Joins
-INSERT INTO Joins VALUES (33, '2021-01-05', 19, 2, 3);
-INSERT INTO Joins VALUES (1, '2021-01-05', 19, 2, 3);
-INSERT INTO Joins VALUES (3, '2021-01-05', 19, 2, 3);
-INSERT INTO Joins VALUES (36, '2021-01-05', 19, 2, 3);
-INSERT INTO Joins VALUES (8, '2021-01-05', 19, 2, 3);
-INSERT INTO Joins VALUES (47, '2021-01-05', 19, 2, 3);
-INSERT INTO Joins VALUES (17, '2021-01-05', 19, 2, 3);
-INSERT INTO Joins VALUES (19, '2021-01-05', 19, 2, 3);
-INSERT INTO Joins VALUES (20, '2021-01-05', 19, 2, 3);
-INSERT INTO Joins VALUES (29, '2021-01-05', 19, 2, 3);
-
-INSERT INTO Joins VALUES (33, '2021-01-05', 20, 2, 3);
-INSERT INTO Joins VALUES (1, '2021-01-05', 20, 2, 3);
-INSERT INTO Joins VALUES (3, '2021-01-05', 20, 2, 3);
-INSERT INTO Joins VALUES (36, '2021-01-05', 20, 2, 3);
-INSERT INTO Joins VALUES (8, '2021-01-05', 20, 2, 3);
-INSERT INTO Joins VALUES (47, '2021-01-05', 20, 2, 3);
-INSERT INTO Joins VALUES (17, '2021-01-05', 20, 2, 3);
-INSERT INTO Joins VALUES (19, '2021-01-05', 20, 2, 3);
-INSERT INTO Joins VALUES (20, '2021-01-05', 20, 2, 3);
-INSERT INTO Joins VALUES (29, '2021-01-05', 20, 2, 3);
-
-INSERT INTO Joins VALUES (33, '2021-01-05', 22, 2, 3);
-INSERT INTO Joins VALUES (1, '2021-01-05', 22, 2, 3);
-INSERT INTO Joins VALUES (3, '2021-01-05', 22, 2, 3);
-INSERT INTO Joins VALUES (36, '2021-01-05', 22, 2, 3);
-INSERT INTO Joins VALUES (8, '2021-01-05', 22, 2, 3);
-INSERT INTO Joins VALUES (47, '2021-01-05', 22, 2, 3);
-INSERT INTO Joins VALUES (17, '2021-01-05', 22, 2, 3);
-INSERT INTO Joins VALUES (19, '2021-01-05', 22, 2, 3);
-INSERT INTO Joins VALUES (20, '2021-01-05', 22, 2, 3);
-INSERT INTO Joins VALUES (29, '2021-01-05', 22, 2, 3);
-
-INSERT INTO Joins VALUES (33, '2021-01-05', 23, 2, 3);
-INSERT INTO Joins VALUES (1, '2021-01-05', 23, 2, 3);
-INSERT INTO Joins VALUES (3, '2021-01-05', 23, 2, 3);
-INSERT INTO Joins VALUES (36, '2021-01-05', 23, 2, 3);
-INSERT INTO Joins VALUES (8, '2021-01-05', 23, 2, 3);
-INSERT INTO Joins VALUES (47, '2021-01-05', 23, 2, 3);
-INSERT INTO Joins VALUES (17, '2021-01-05', 23, 2, 3);
-INSERT INTO Joins VALUES (19, '2021-01-05', 23, 2, 3);
-INSERT INTO Joins VALUES (20, '2021-01-05', 23, 2, 3);
-INSERT INTO Joins VALUES (29, '2021-01-05', 23, 2, 3);
-
-
 -- Add Sessions
-INSERT INTO Sessions VALUES ('2021-01-05', 19, 2, 3, 33, 44);
-INSERT INTO Sessions VALUES ('2021-01-05', 20, 2, 3, 33, 44);
+-- INSERT INTO Sessions VALUES ('2021-01-05', 19, 2, 3, 33, 44);
+-- INSERT INTO Sessions VALUES ('2021-01-05', 20, 2, 3, 33, 44);
 
-INSERT INTO Sessions VALUES ('2021-01-05', 22, 2, 3, 33, 44);
-INSERT INTO Sessions VALUES ('2021-01-05', 23, 2, 3, 33, 44);
+-- INSERT INTO Sessions VALUES ('2021-01-05', 22, 2, 3, 33, 44);
+-- INSERT INTO Sessions VALUES ('2021-01-05', 23, 2, 3, 33, 44);
+
+-- Add Joins
+-- INSERT INTO Joins VALUES (33, '2021-01-05', 19, 2, 3);
+-- INSERT INTO Joins VALUES (1, '2021-01-05', 19, 2, 3);
+-- INSERT INTO Joins VALUES (3, '2021-01-05', 19, 2, 3);
+-- INSERT INTO Joins VALUES (36, '2021-01-05', 19, 2, 3);
+-- INSERT INTO Joins VALUES (8, '2021-01-05', 19, 2, 3);
+-- INSERT INTO Joins VALUES (47, '2021-01-05', 19, 2, 3);
+-- INSERT INTO Joins VALUES (17, '2021-01-05', 19, 2, 3);
+-- INSERT INTO Joins VALUES (19, '2021-01-05', 19, 2, 3);
+-- INSERT INTO Joins VALUES (20, '2021-01-05', 19, 2, 3);
+-- INSERT INTO Joins VALUES (29, '2021-01-05', 19, 2, 3);
+
+-- INSERT INTO Joins VALUES (33, '2021-01-05', 20, 2, 3);
+-- INSERT INTO Joins VALUES (1, '2021-01-05', 20, 2, 3);
+-- INSERT INTO Joins VALUES (3, '2021-01-05', 20, 2, 3);
+-- INSERT INTO Joins VALUES (36, '2021-01-05', 20, 2, 3);
+-- INSERT INTO Joins VALUES (8, '2021-01-05', 20, 2, 3);
+-- INSERT INTO Joins VALUES (47, '2021-01-05', 20, 2, 3);
+-- INSERT INTO Joins VALUES (17, '2021-01-05', 20, 2, 3);
+-- INSERT INTO Joins VALUES (19, '2021-01-05', 20, 2, 3);
+-- INSERT INTO Joins VALUES (20, '2021-01-05', 20, 2, 3);
+-- INSERT INTO Joins VALUES (29, '2021-01-05', 20, 2, 3);
+
+-- INSERT INTO Joins VALUES (33, '2021-01-05', 22, 2, 3);
+-- INSERT INTO Joins VALUES (1, '2021-01-05', 22, 2, 3);
+-- INSERT INTO Joins VALUES (3, '2021-01-05', 22, 2, 3);
+-- INSERT INTO Joins VALUES (36, '2021-01-05', 22, 2, 3);
+-- INSERT INTO Joins VALUES (8, '2021-01-05', 22, 2, 3);
+-- INSERT INTO Joins VALUES (47, '2021-01-05', 22, 2, 3);
+-- INSERT INTO Joins VALUES (17, '2021-01-05', 22, 2, 3);
+-- INSERT INTO Joins VALUES (19, '2021-01-05', 22, 2, 3);
+-- INSERT INTO Joins VALUES (20, '2021-01-05', 22, 2, 3);
+-- INSERT INTO Joins VALUES (29, '2021-01-05', 22, 2, 3);
+
+-- INSERT INTO Joins VALUES (33, '2021-01-05', 23, 2, 3);
+-- INSERT INTO Joins VALUES (1, '2021-01-05', 23, 2, 3);
+-- INSERT INTO Joins VALUES (3, '2021-01-05', 23, 2, 3);
+-- INSERT INTO Joins VALUES (36, '2021-01-05', 23, 2, 3);
+-- INSERT INTO Joins VALUES (8, '2021-01-05', 23, 2, 3);
+-- INSERT INTO Joins VALUES (47, '2021-01-05', 23, 2, 3);
+-- INSERT INTO Joins VALUES (17, '2021-01-05', 23, 2, 3);
+-- INSERT INTO Joins VALUES (19, '2021-01-05', 23, 2, 3);
+-- INSERT INTO Joins VALUES (20, '2021-01-05', 23, 2, 3);
+-- INSERT INTO Joins VALUES (29, '2021-01-05', 23, 2, 3);
+
+-- CALL unbook_room (2, 3, '2021-01-05', 19, 23, 33);
+
