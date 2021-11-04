@@ -3,7 +3,6 @@ SELECT * from non_compliance ('2021-01-01', '2021-01-01') ORDER BY num_date DESC
 select eid,  count(*) from healthdeclaration where date >= '2021-01-01' and date <= '2021-01-01' group by eid order by count, eid;
 
 -- view_booking_report
--- 2nd test case shows that one of the date return is BEFORE given start date
 SELECT * from view_booking_report ('2021-01-01', 1);
 select floor, room, date, time, eid_manager from sessions where eid_booker = 1 and date >= '2021-01-01' order by date, time;
 
@@ -14,9 +13,7 @@ select floor, room, date, time, eid_manager from sessions where eid_booker = 33 
 SELECT * from view_future_meeting ('2021-01-01', 1);
 select s.floor, s.room, s.date, s.time from sessions s, joins j where s.date >= '2021-01-01' and s.eid_manager is not NULL and s.date = j.date and s.time = j.time and s. room = j.room and s.floor = j.floor and j.eid = 1 order by date, time;
 
-
 -- view_manager_report
--- `view_manager_report` different from check
 SELECT * FROM view_manager_report ('2021-01-01', 4);  -- not manager, should return empty table
 SELECT * FROM view_manager_report ('2021-01-01', 34);  -- return session w/ same department as manager, booked but not approved
 select s.floor, s.room, s.date, s.time, s.eid_booker
