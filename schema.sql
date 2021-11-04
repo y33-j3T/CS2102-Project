@@ -15,7 +15,7 @@ CREATE TABLE Employees (
     home_number     INTEGER NOT NULL,
     mobile_number   INTEGER UNIQUE NOT NULL,
     office_number   INTEGER UNIQUE NOT NULL,
-    resignedDate    DATE DEFAULT NULL,
+    resigned_date   DATE DEFAULT NULL,
     did             INTEGER NOT NULL,
     PRIMARY KEY (eid),
     FOREIGN KEY (did) REFERENCES Departments (did) ON DELETE NO ACTION

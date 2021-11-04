@@ -151,10 +151,10 @@ $$ LANGUAGE plpgsql;
 
 
 CREATE OR REPLACE FUNCTION get_resigned (IN in_eid INT)
-RETURNS TABLE(eid INT, resignedDate DATE) AS $$
+RETURNS TABLE(eid INT, resigned_date DATE) AS $$
 BEGIN
     RETURN QUERY
-        SELECT E.eid, E.resignedDate FROM Employees E
+        SELECT E.eid, E.resigned_date FROM Employees E
         WHERE E.eid = get_resigned.in_eid;
 END;
 $$ LANGUAGE plpgsql;
@@ -174,7 +174,7 @@ DECLARE
     curs CURSOR FOR (SELECT * FROM Sessions S
                      WHERE S.eid_manager IS NULL
                      AND get_room_department(S.room, S.floor) = get_employee_department(view_manager_report.in_eid)
-                     AND (SELECT T.resignedDate FROM get_resigned(eid_booker) T) IS NULL
+                     AND (SELECT T.resigned_date FROM get_resigned(eid_booker) T) IS NULL
                      ORDER BY date, time);
     r1 RECORD;
 BEGIN

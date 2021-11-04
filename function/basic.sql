@@ -96,7 +96,7 @@ BEGIN
     random_number := (floor(1000 + random() * 8999));
     email := CONCAT(ename, random_number, '@gmail.com');
 
-    INSERT INTO Employees(eid, ename, email, home_number, mobile_number, office_number, resignedDate, did)
+    INSERT INTO Employees(eid, ename, email, home_number, mobile_number, office_number, resigned_date, did)
     VALUES (eid, ename, email, home_number, mobile_number, office_number, null, department_id);
     IF role = 'senior' THEN
         INSERT INTO Booker(eid)
@@ -127,7 +127,7 @@ BEGIN
     END IF;
 
     UPDATE Employees
-    SET resignedDate = date
+    SET resigned_date = date
     WHERE employee_id = eid;
 END;
 $$ LANGUAGE 'plpgsql';

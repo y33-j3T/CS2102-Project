@@ -121,16 +121,16 @@ CREATE OR REPLACE FUNCTION remove_employee_from_future_record()
 $$
 BEGIN
     -- Update session to non-approved if resigned employee is a approval
-    -- DELETE FROM Sessions WHERE eid_manager = NEW.eid AND Sessions.date > NEW.resignedDate;
+    -- DELETE FROM Sessions WHERE eid_manager = NEW.eid AND Sessions.date > NEW.resigned_date;
     UPDATE Sessions
     SET eid_manager = null
-    WHERE eid_manager = NEW.eid AND Sessions.date > NEW.resignedDate;
+    WHERE eid_manager = NEW.eid AND Sessions.date > NEW.resigned_date;
 
     -- remove session if resigned employee is a booker
-    DELETE FROM Sessions WHERE eid_booker = NEW.eid AND Sessions.date > NEW.resignedDate;
+    DELETE FROM Sessions WHERE eid_booker = NEW.eid AND Sessions.date > NEW.resigned_date;
 
     -- remove employee from future meeting
-    DELETE FROM Joins WHERE eid = NEW.eid AND Joins.date > NEW.resignedDate;
+    DELETE FROM Joins WHERE eid = NEW.eid AND Joins.date > NEW.resigned_date;
 
     RETURN NULL;
 END;
@@ -138,7 +138,7 @@ $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS resignation_sop ON Employees;
 CREATE TRIGGER resignation_sop
-    AFTER UPDATE OF resignedDate
+    AFTER UPDATE OF resigned_date
     ON Employees
     FOR EACH ROW
 EXECUTE FUNCTION remove_employee_from_future_record();

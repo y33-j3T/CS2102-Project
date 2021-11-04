@@ -40,7 +40,7 @@ $$
 declare
     is_resigned boolean;
 begin
-    is_resigned := (SELECT resignedDate FROM employees E WHERE E.eid = eid_to_check) is not null;
+    is_resigned := (SELECT resigned_date FROM employees E WHERE E.eid = eid_to_check) is not null;
     return is_resigned;
 end;
 $$ language plpgsql;
