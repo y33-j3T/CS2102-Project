@@ -10,7 +10,7 @@ CREATE TABLE Departments (
 
 CREATE TABLE Employees (
     eid             INTEGER,
-    ename           VARCHAR(50) UNIQUE NOT NULL,
+    ename           VARCHAR(50) NOT NULL,
     email           TEXT UNIQUE NOT NULL,
     home_number     INTEGER NOT NULL,
     mobile_number   INTEGER NOT NULL,
