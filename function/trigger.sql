@@ -189,7 +189,7 @@ BEGIN
 
     -- for close contacts
     WITH CloseContacts AS (SELECT close_contact_eid FROM contact_tracing(fever_eid))
-         -- close contact is booker, delete Session he booked in day D to day D+7
+    -- close contact is booker, delete Session he booked in day D to day D+7
     DELETE
     FROM Sessions s
     WHERE EXISTS(
