@@ -1,9 +1,9 @@
 --\i 'D:/CS2102/code/cs2102_proj/function.sql'  
 
-DROP PROCEDURE IF EXISTS add_department, remove_department,
-                          add_room, change_capacity,
-                          add_employee, remove_employee
-CASCADE;
+-- DROP PROCEDURE IF EXISTS add_department, remove_department,
+--                           add_room, change_capacity,
+--                           add_employee, remove_employee
+-- CASCADE;
 
 CREATE OR REPLACE PROCEDURE add_department(department_id INTEGER, department_name VARCHAR(50))
 AS

@@ -8,7 +8,6 @@
     -- Employee ID
     -- Number of days
 -- Number of days is the number of days the employee did not declare their temperature within the given period. The table should be sorted in descending order of number of days.
-
 CREATE OR REPLACE FUNCTION get_num_declared (IN start_date DATE, IN end_date DATE)
 RETURNS TABLE(eid INT, num_date INT) AS $$
 BEGIN
@@ -29,15 +28,19 @@ DECLARE
     curs CURSOR FOR (SELECT * FROM get_num_declared (start_date, end_date));
     r RECORD;
 BEGIN
-    OPEN curs;
-    LOOP
-        FETCH curs into r;
-        EXIT WHEN NOT FOUND;
-        eid := r.eid;
-        num_date := (end_date - start_date)::INT - r.num_date + 1;
-        RETURN NEXT;
-    END LOOP;
-    CLOSE curs;
+    IF start_date > end_date THEN
+        RAISE NOTICE 'End date must be after start date';
+    ELSE
+        OPEN curs;
+        LOOP
+            FETCH curs into r;
+            EXIT WHEN NOT FOUND;
+            eid := r.eid;
+            num_date := (end_date - start_date)::INT - r.num_date + 1;
+            RETURN NEXT;
+        END LOOP;
+        CLOSE curs;
+    END IF;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -56,11 +59,11 @@ $$ LANGUAGE plpgsql;
     -- Start hour
     -- Is approved
 -- The table should be sorted in ascending order of date and start hour.
-CREATE OR REPLACE FUNCTION view_booking_report (IN start_date DATE, IN in_eid INT)
+CREATE OR REPLACE FUNCTION view_booking_report (IN start_date DATE, IN eid INT)
 RETURNS TABLE(floor INT, room INT, date DATE, start_hr TEXT, is_approved BOOLEAN) AS $$
 DECLARE
     curs CURSOR FOR (SELECT * FROM Sessions S
-                     WHERE S.eid_booker = view_booking_report.in_eid 
+                     WHERE S.eid_booker = view_booking_report.eid 
                      AND S.date >= view_booking_report.start_date
                      ORDER BY date, time);
     r1 RECORD;
@@ -98,10 +101,10 @@ $$ LANGUAGE plpgsql;
     -- Date
     -- Start hour
 -- The table should be sorted in ascending order of date and start hour.
-CREATE OR REPLACE FUNCTION view_future_meeting (IN start_date DATE, IN in_eid INT)
+CREATE OR REPLACE FUNCTION view_future_meeting (IN start_date DATE, IN eid INT)
 RETURNS TABLE(floor INT, room INT, date DATE, start_hr TEXT) AS $$
 DECLARE
-    curs CURSOR FOR (SELECT * FROM Joins J WHERE J.eid = in_eid ORDER BY date, time);
+    curs CURSOR FOR (SELECT * FROM Joins J WHERE J.eid = view_future_meeting.eid ORDER BY date, time);
     r1 RECORD;
     today DATE;
 BEGIN
@@ -139,27 +142,28 @@ $$ LANGUAGE plpgsql;
     -- Start hour 
     -- Employee ID
 -- The table should be sorted in ascending order of date and start hour.
-CREATE OR REPLACE FUNCTION get_employee_department (IN in_eid INT)
+CREATE OR REPLACE FUNCTION get_employee_department (IN eid INT)
 RETURNS INTEGER AS $$
 BEGIN
-    RETURN (SELECT did FROM Employees E WHERE E.eid = in_eid); 
+    RETURN (SELECT did FROM Employees E WHERE E.eid = get_employee_department.eid); 
 END;
 $$ LANGUAGE plpgsql;
+
 
 CREATE OR REPLACE FUNCTION get_resigned (IN in_eid INT)
 RETURNS TABLE(eid INT, resignedDate DATE) AS $$
 BEGIN
     RETURN QUERY
         SELECT E.eid, E.resignedDate FROM Employees E
-        WHERE E.eid = in_eid;
-END
+        WHERE E.eid = get_resigned.in_eid;
+END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION get_room_department(IN in_room INT, IN in_floor INT)
+CREATE OR REPLACE FUNCTION get_room_department(IN room INT, IN floor INT)
 RETURNS INTEGER AS $$
 BEGIN
-    RETURN (SELECT did FROM MeetingRooms WHERE room = in_room AND floor = in_floor);
+    RETURN (SELECT did FROM MeetingRooms M WHERE M.room = get_room_department.room AND M.floor = get_room_department.floor);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -169,7 +173,7 @@ RETURNS TABLE(floor INT, room INT, date DATE, start_hr INT, eid INT) AS $$
 DECLARE
     curs CURSOR FOR (SELECT * FROM Sessions S
                      WHERE S.eid_manager IS NULL
-                     AND get_room_department(S.room, S.floor) = get_employee_department(in_eid)
+                     AND get_room_department(S.room, S.floor) = get_employee_department(view_manager_report.in_eid)
                      AND (SELECT T.resignedDate FROM get_resigned(eid_booker) T) IS NULL
                      ORDER BY date, time);
     r1 RECORD;

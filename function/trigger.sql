@@ -1,3 +1,7 @@
+DROP TRIGGER IF EXISTS can_join_meeting ON Joins;
+DROP TRIGGER IF EXISTS can_book ON Sessions;
+DROP TRIGGER IF EXISTS can_approve ON Sessions;
+DROP TRIGGER IF EXISTS can_leave_meeting ON Joins;
 CREATE OR REPLACE FUNCTION remove_bookings_over_capacity()
     RETURNS TRIGGER AS
 $$
@@ -46,120 +50,6 @@ CREATE TRIGGER remove_bookings_over_capacity
     FOR EACH ROW
 EXECUTE FUNCTION remove_bookings_over_capacity();
 
--- Check if the employee can book
-
-CREATE OR REPLACE FUNCTION can_book()
-    RETURNS TRIGGER AS
-$$
-declare
-    can_book boolean;
-begin
-    can_book := is_booker(new.eid_booker)
-        and not is_resigned(new.eid_booker)
-        and not is_having_fever(new.eid_booker)
-        and is_future_meeting(new.date)
-        and not is_meeting_exist(new.floor, new.room, new.time, new.date);
-    if can_book then
-        return new;
-    end if;
-    -- Not sure why but if meeting exist cannot raise exception
-    RAISE NOTICE 'This booking session cannot be completed';
-    return null;
-end;
-$$ LANGUAGE plpgsql;
-DROP TRIGGER IF EXISTS can_book ON Sessions;
-CREATE TRIGGER can_book
-    BEFORE INSERT
-    ON Sessions
-    FOR EACH ROW
-EXECUTE FUNCTION can_book();
--- Check if the employee can approve booking
--- If fail check then delete ? ( currently not)
-
-CREATE OR REPLACE FUNCTION can_approve()
-    RETURNS TRIGGER AS
-$$
-declare
-    can_approve boolean;
-begin
-    can_approve := is_manager(new.eid_manager)
-        and (not is_resigned(new.eid_manager))
-        and is_same_department_as_meeting_room(new.eid_manager, old.floor, old.room)
-        and is_future_meeting(old.date)
-        and is_meeting_exist(old.floor, old.room, old.time, old.date);
-
-    if can_approve then
-        return new;
-    end if;
-    RAISE NOTICE 'The approval for this booking session cannot be completed';
-    return old;
-end;
-$$ LANGUAGE plpgsql;
-
-
-DROP TRIGGER IF EXISTS can_approve ON Sessions;
-CREATE TRIGGER can_approve
-    BEFORE UPDATE OF eid_manager
-    ON Sessions
-    FOR EACH ROW
-EXECUTE FUNCTION can_approve();
-
--- Check if the meeting about to join is approved
-
-CREATE OR REPLACE FUNCTION can_join_meeting()
-    RETURNS TRIGGER AS
-$$
-declare
-    can_join_meeting boolean;
-begin
-    can_join_meeting := is_meeting_exist(new.floor, new.room, new.time, new.date)
-        and not is_meeting_approved(new.floor, new.room, new.time, new.date)
-        and (not is_having_fever(new.eid))
-        and (not is_resigned(new.eid))
-        and is_under_max_capacity(new.floor, new.room, new.time, new.date)
-        and is_future_meeting(new.date);
-    if can_join_meeting then
-        return new;
-    end if;
-    RAISE NOTICE 'This employee cannot join this session';
-    return null;
-end;
-$$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS can_join_meeting ON Joins;
-CREATE TRIGGER can_join_meeting
-    BEFORE INSERT
-    ON Joins
-    FOR EACH ROW
-EXECUTE FUNCTION can_join_meeting();
--- Check if the meeting about to leave is approved
-
-CREATE OR REPLACE FUNCTION can_leave_meeting()
-    RETURNS TRIGGER AS
-$$
-declare
-    can_leave_meeting boolean;
-begin
-    can_leave_meeting := (not is_meeting_approved(old.floor, old.room, old.time, old.date))
-        and is_future_meeting(old.date);
-
-    --Because this trigger will also be used by ON DELETE CASCADE of the Joins table
-    --Assume that the no employee will be deleted
-    if can_leave_meeting or not is_meeting_exist(old.floor, old.room, old.time, old.date) then
-        return old;
-    end if;
-    RAISE NOTICE 'This employee cannot leave this session';
-    return null;
-end;
-$$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS can_leave_meeting ON Joins;
-CREATE TRIGGER can_leave_meeting
-    BEFORE DELETE
-    ON Joins
-    FOR EACH ROW
-EXECUTE FUNCTION can_leave_meeting();
-
 
 -- Fever SOP:
 -- If employee is booker, delete Sessions where he booked, approved or not.
@@ -200,6 +90,7 @@ BEGIN
                     AND s.date <= CURRENT_DATE + 7
               );
     -- remove close contacts from Joins in day D to day D+7
+    WITH CloseContacts AS (SELECT close_contact_eid FROM contact_tracing(fever_eid))
     DELETE
     FROM Joins j
     WHERE EXISTS(
@@ -226,7 +117,7 @@ EXECUTE FUNCTION fever_sop();
 
 
 CREATE OR REPLACE FUNCTION remove_employee_from_future_record()
-    RETURNS TRIGGER AS 
+    RETURNS TRIGGER AS
 $$
 BEGIN
     -- Update session to non-approved if resigned employee is a approval
@@ -247,6 +138,120 @@ $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS resignation_sop ON Employees;
 CREATE TRIGGER resignation_sop
-    AFTER UPDATE OF resignedDate ON Employees
+    AFTER UPDATE OF resignedDate
+    ON Employees
     FOR EACH ROW
 EXECUTE FUNCTION remove_employee_from_future_record();
+
+-- Check if the employee can book
+-- CREATE OR REPLACE FUNCTION can_book()
+--     RETURNS TRIGGER AS
+-- $$
+-- declare
+--     can_book boolean;
+-- begin
+--     can_book := is_booker(new.eid_booker)
+--         and not is_resigned(new.eid_booker)
+--         and not is_having_fever(new.eid_booker)
+--         and is_future_meeting(new.date)
+--         and not is_meeting_exist(new.floor, new.room, new.time, new.date);
+--     if can_book then
+--         return new;
+--     end if;
+--     -- Not sure why but if meeting exist cannot raise exception
+--     RAISE NOTICE 'This booking session cannot be completed';
+--     return null;
+-- end;
+-- $$ LANGUAGE plpgsql;
+-- DROP TRIGGER IF EXISTS can_book ON Sessions;
+-- CREATE TRIGGER can_book
+--     BEFORE INSERT
+--     ON Sessions
+--     FOR EACH ROW
+-- EXECUTE FUNCTION can_book();
+-- -- Check if the employee can approve booking
+-- -- If fail check then delete ? ( currently not)
+--
+-- CREATE OR REPLACE FUNCTION can_approve()
+--     RETURNS TRIGGER AS
+-- $$
+-- declare
+--     can_approve boolean;
+-- begin
+--     can_approve := is_manager(new.eid_manager)
+--         and (not is_resigned(new.eid_manager))
+--         and is_same_department_as_meeting_room(new.eid_manager, old.floor, old.room)
+--         and is_future_meeting(old.date)
+--         and is_meeting_exist(old.floor, old.room, old.time, old.date);
+--
+--     if can_approve then
+--         return new;
+--     end if;
+--     RAISE NOTICE 'The approval for this booking session cannot be completed';
+--     return old;
+-- end;
+-- $$ LANGUAGE plpgsql;
+--
+--
+-- DROP TRIGGER IF EXISTS can_approve ON Sessions;
+-- CREATE TRIGGER can_approve
+--     BEFORE UPDATE OF eid_manager
+--     ON Sessions
+--     FOR EACH ROW
+-- EXECUTE FUNCTION can_approve();
+--
+-- -- Check if the meeting about to join is approved
+--
+-- CREATE OR REPLACE FUNCTION can_join_meeting()
+--     RETURNS TRIGGER AS
+-- $$
+-- declare
+--     can_join_meeting boolean;
+-- begin
+--     can_join_meeting := is_meeting_exist(new.floor, new.room, new.time, new.date)
+--         and not is_meeting_approved(new.floor, new.room, new.time, new.date)
+--         and (not is_having_fever(new.eid))
+--         and (not is_resigned(new.eid))
+--         and is_under_max_capacity(new.floor, new.room, new.time, new.date)
+--         and is_future_meeting(new.date);
+--     if can_join_meeting then
+--         return new;
+--     end if;
+--     RAISE NOTICE 'This employee cannot join this session';
+--     return null;
+-- end;
+-- $$ LANGUAGE plpgsql;
+--
+-- DROP TRIGGER IF EXISTS can_join_meeting ON Joins;
+-- CREATE TRIGGER can_join_meeting
+--     BEFORE INSERT
+--     ON Joins
+--     FOR EACH ROW
+-- EXECUTE FUNCTION can_join_meeting();
+-- -- Check if the meeting about to leave is approved
+--
+-- CREATE OR REPLACE FUNCTION can_leave_meeting()
+--     RETURNS TRIGGER AS
+-- $$
+-- declare
+--     can_leave_meeting boolean;
+-- begin
+--     can_leave_meeting := (not is_meeting_approved(old.floor, old.room, old.time, old.date))
+--         and is_future_meeting(old.date);
+--
+--     --Because this trigger will also be used by ON DELETE CASCADE of the Joins table
+--     --Assume that the no employee will be deleted
+--     if can_leave_meeting or not is_meeting_exist(old.floor, old.room, old.time, old.date) then
+--         return old;
+--     end if;
+--     RAISE NOTICE 'This employee cannot leave this session';
+--     return null;
+-- end;
+-- $$ LANGUAGE plpgsql;
+--
+-- DROP TRIGGER IF EXISTS can_leave_meeting ON Joins;
+-- CREATE TRIGGER can_leave_meeting
+--     BEFORE DELETE
+--     ON Joins
+--     FOR EACH ROW
+-- EXECUTE FUNCTION can_leave_meeting();
