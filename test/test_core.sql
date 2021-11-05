@@ -50,3 +50,30 @@ DELETE FROM HealthDeclaration WHERE date >= '2021-11-01';
 CALL unbook_room (2, 3, '2021-11-04', 10, 14, 33);
 --CALL unbook_room (2, 3, '2021-10-30', 12, 13, 33);
 -- SELECT * FROM Joins WHERE date = '2021-10-29';
+
+
+---------------------------
+-- Test exceed capacity  --
+---------------------------
+CALL book_room (2, 3, '2021-11-13', 10, 11, 26);
+CALL join_meeting (2, 3, '2021-11-13', 10, 11, 1);
+CALL join_meeting (2, 3, '2021-11-13', 10, 11, 2);
+CALL join_meeting (2, 3, '2021-11-13', 10, 11, 3);
+CALL join_meeting (2, 3, '2021-11-13', 10, 11, 4);
+CALL join_meeting (2, 3, '2021-11-13', 10, 11, 5);
+CALL join_meeting (2, 3, '2021-11-13', 10, 11, 6);
+CALL join_meeting (2, 3, '2021-11-13', 10, 11, 7);
+CALL join_meeting (2, 3, '2021-11-13', 10, 11, 8);
+CALL join_meeting (2, 3, '2021-11-13', 10, 11, 9);
+CALL join_meeting (2, 3, '2021-11-13', 10, 11, 10);  -- exceed capacity 10
+CALL join_meeting (2, 3, '2021-11-13', 10, 11, 11);  -- exceed capacity 10
+CALL join_meeting (2, 3, '2021-11-13', 10, 11, 12);  -- exceed capacity 10
+
+select * from joins where date = '2021-11-13';
+-- should have 1 to 9 and 26
+
+-- clean up
+CALL unbook_room (2, 3, '2021-11-13', 10, 11, 26);
+
+-- check clean up
+select * from joins where date = '2021-11-13';
