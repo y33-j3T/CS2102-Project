@@ -142,6 +142,8 @@ begin
                 if can_join_meeting then
                     INSERT INTO joins(eid, date, time, room, floor)
                     VALUES (join_eid, join_date, curr_time, join_room, join_floor);
+                else
+                    RAISE NOTICE 'This employee cannot join session % to %', curr_time, curr_time + 1;
                 end if;
                 curr_time := curr_time + 1;
             end loop;
