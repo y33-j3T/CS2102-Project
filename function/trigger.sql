@@ -65,30 +65,19 @@ BEGIN
     fever_date := NEW.date;
 
     -- for fever employee
-    -- employee is booker, delete Sessions where he booked
-    DELETE
-    FROM Sessions
-    WHERE eid_booker = fever_eid
-        AND date > fever_date;
-
     -- remove employee from all future Joins
     DELETE
     FROM Joins j
     WHERE j.eid = fever_eid
         AND date > fever_date;
 
-    -- for close contacts
-    WITH CloseContacts AS (SELECT close_contact_eid FROM contact_tracing(fever_eid, fever_date))
-    -- close contact is booker, delete Session he booked in day D to day D+7
+    -- employee is booker, delete Sessions where he booked
     DELETE
-    FROM Sessions s
-    WHERE EXISTS(
-                  SELECT 1
-                  FROM CloseContacts c
-                  WHERE s.eid_booker = c.close_contact_eid
-                    AND s.date >= fever_date
-                    AND s.date <= fever_date + 7
-              );
+    FROM Sessions
+    WHERE eid_booker = fever_eid
+        AND date > fever_date;
+
+    -- for close contacts
     -- remove close contacts from Joins in day D to day D+7
     WITH CloseContacts AS (SELECT close_contact_eid FROM contact_tracing(fever_eid, fever_date))
     DELETE
@@ -100,6 +89,19 @@ BEGIN
                     AND j.date >= fever_date
                     AND j.date <= fever_date + 7
               );
+
+    WITH CloseContacts AS (SELECT close_contact_eid FROM contact_tracing(fever_eid, fever_date))
+    -- close contact is booker, delete Session he booked in day D to day D+7
+    DELETE
+    FROM Sessions s
+    WHERE EXISTS(
+                  SELECT 1
+                  FROM CloseContacts c
+                  WHERE s.eid_booker = c.close_contact_eid
+                    AND s.date >= fever_date
+                    AND s.date <= fever_date + 7
+              );
+
 
     RETURN NULL;
 END;
