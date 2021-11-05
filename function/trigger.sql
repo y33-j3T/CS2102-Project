@@ -59,26 +59,26 @@ CREATE OR REPLACE FUNCTION fever_sop() RETURNS TRIGGER AS
 $$
 DECLARE
     fever_eid INTEGER;
+    fever_date DATE;
 BEGIN
     fever_eid := NEW.eid;
+    fever_date := NEW.date;
 
     -- for fever employee
-    IF is_booker(fever_eid) THEN
-        -- employee is booker, delete Sessions where he booked
-        DELETE
-        FROM Sessions
-        WHERE eid_booker = fever_eid
-          AND date > CURRENT_DATE;
-    ELSE
-        -- remove employee from all future Joins
-        DELETE
-        FROM Joins j
-        WHERE j.eid = fever_eid
-          AND date > CURRENT_DATE;
-    END IF;
+    -- employee is booker, delete Sessions where he booked
+    DELETE
+    FROM Sessions
+    WHERE eid_booker = fever_eid
+        AND date > fever_date;
+
+    -- remove employee from all future Joins
+    DELETE
+    FROM Joins j
+    WHERE j.eid = fever_eid
+        AND date > fever_date;
 
     -- for close contacts
-    WITH CloseContacts AS (SELECT close_contact_eid FROM contact_tracing(fever_eid))
+    WITH CloseContacts AS (SELECT close_contact_eid FROM contact_tracing(fever_eid, fever_date))
     -- close contact is booker, delete Session he booked in day D to day D+7
     DELETE
     FROM Sessions s
@@ -86,19 +86,19 @@ BEGIN
                   SELECT 1
                   FROM CloseContacts c
                   WHERE s.eid_booker = c.close_contact_eid
-                    AND s.date >= CURRENT_DATE
-                    AND s.date <= CURRENT_DATE + 7
+                    AND s.date >= fever_date
+                    AND s.date <= fever_date + 7
               );
     -- remove close contacts from Joins in day D to day D+7
-    WITH CloseContacts AS (SELECT close_contact_eid FROM contact_tracing(fever_eid))
+    WITH CloseContacts AS (SELECT close_contact_eid FROM contact_tracing(fever_eid, fever_date))
     DELETE
     FROM Joins j
     WHERE EXISTS(
                   SELECT 1
                   FROM CloseContacts c
                   WHERE j.eid = c.close_contact_eid
-                    AND j.date >= CURRENT_DATE
-                    AND j.date <= CURRENT_DATE + 7
+                    AND j.date >= fever_date
+                    AND j.date <= fever_date + 7
               );
 
     RETURN NULL;
