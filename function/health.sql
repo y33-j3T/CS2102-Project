@@ -18,7 +18,7 @@ $$ LANGUAGE plpgsql;
 
 -- Assuming once meeting approved, it will occur with all participants attending
 -- Get all employees in the same approved meeting room from day D-3 to day D
-CREATE OR REPLACE FUNCTION contact_tracing (fever_eid INTEGER) 
+CREATE OR REPLACE FUNCTION contact_tracing (fever_eid INTEGER, fever_date DATE) 
     RETURNS TABLE (close_contact_eid INTEGER) AS $$
 BEGIN
     -- meetings that fever employee was in from day D-3 to day D
@@ -27,10 +27,8 @@ BEGIN
             SELECT s.date, s.time, s.room, s.floor
             FROM Joins j, Sessions s
             WHERE s.eid_manager IS NOT NULL
-            -- AND s.date >= CAST('2021-07-10' AS DATE) - 30
-            -- AND s.date <= CAST('2021-07-10' AS DATE)
-            AND s.date >= CURRENT_DATE - 3
-            AND s.date <= CURRENT_DATE
+            AND s.date >= fever_date - 3
+            AND s.date <= fever_date
             AND s.time = j.time
             AND s.room = j.room
             AND s.floor = j.floor
