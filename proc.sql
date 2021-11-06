@@ -359,18 +359,20 @@ declare
     curr_time int;
 begin
     -- check if end_time is correct
-    curr_time := start_time;
-    while curr_time < end_time
-        loop
-            delete
-            from sessions S
-            where S.eid_booker = unbook_room.eid_booker
-              and S.time = curr_time
-              and S.date = unbook_room.date
-              and S.floor = unbook_room.floor
-              and S.room = unbook_room.room;
-            curr_time := curr_time + 1;
-        end loop;
+    if (is_future_meeting(unbook_room.date)) then
+        curr_time := start_time;
+        while curr_time < end_time
+            loop
+                delete
+                from sessions S
+                where S.eid_booker = unbook_room.eid_booker
+                  and S.time = curr_time
+                  and S.date = unbook_room.date
+                  and S.floor = unbook_room.floor
+                  and S.room = unbook_room.room;
+                curr_time := curr_time + 1;
+            end loop;
+    end if;
 end;
 $$ language plpgsql;
 
@@ -433,7 +435,8 @@ begin
                         not is_meeting_approved(leave_meeting.floor, leave_meeting.room, curr_time,
                                                  leave_meeting.date)
                         and is_future_meeting(leave_meeting.date)
-                        and not leave_meeting.eid =  (SELECT eid_booker FROM sessions S WHERE S.floor = leave_meeting.floor
+                        -- if booker, not allow to leave
+                        and not leave_meeting.eid = (SELECT eid_booker FROM sessions S WHERE S.floor = leave_meeting.floor
                             and S.room = leave_meeting.room and S.date = leave_meeting.date and S.time = curr_time);
             if can_leave_meeting then
                 delete
@@ -459,8 +462,6 @@ AS
 $$
 declare
     curr_time int;
---     can_approve boolean;
-
 begin
     curr_time := start_time;
     if is_manager(eid)
@@ -480,10 +481,8 @@ begin
     else
         RAISE NOTICE 'The approval for this booking session cannot be completed';
     end if;
-
 end;
 $$ language plpgsql;
-
 
 
 --*************************************************************************
