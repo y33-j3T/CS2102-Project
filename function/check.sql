@@ -1,102 +1,102 @@
-create or replace function is_manager(eid_to_check integer)
-    returns boolean as
+CREATE OR REPLACE FUNCTION is_manager(eid_to_check INTEGER)
+    RETURNS BOOLEAN AS
 $$
-declare
-    is_in boolean;
-begin
+DECLARE
+    is_in BOOLEAN;
+BEGIN
     is_in := EXISTS(SELECT 1 FROM Manager M WHERE eid_to_check = M.eid);
-    return is_in;
+    RETURN is_in;
 end;
-$$ language plpgsql;
+$$ LANGUAGE plpgsql;
 
 
-create or replace function is_booker(eid_to_check integer)
-    returns boolean as
+CREATE OR REPLACE FUNCTION is_booker(eid_to_check INTEGER)
+    RETURNS BOOLEAN AS
 $$
-declare
-    is_in boolean;
-begin
+DECLARE
+    is_in BOOLEAN;
+BEGIN
     is_in := EXISTS(SELECT 1 FROM Booker B WHERE eid_to_check = B.eid);
-    return is_in;
-end;
-$$ language plpgsql;
+    RETURN is_in;
+END;
+$$ LANGUAGE plpgsql;
 
 
-create or replace function is_having_fever(eid_to_check integer)
-    returns boolean as
+CREATE OR REPLACE FUNCTION is_having_fever(eid_to_check INTEGER)
+    RETURNS BOOLEAN AS
 $$
-declare
-    is_having_fever boolean;
-begin
+DECLARE
+    is_having_fever BOOLEAN;
+BEGIN
     is_having_fever :=
             (SELECT fever FROM healthdeclaration HD WHERE HD.eid = eid_to_check ORDER BY HD.date DESC LIMIT 1);
-    return is_having_fever;
+    RETURN is_having_fever;
 end;
-$$ language plpgsql;
+$$ LANGUAGE plpgsql;
 
-create or replace function is_resigned(eid_to_check integer)
-    returns boolean as
+CREATE OR REPLACE FUNCTION is_resigned(eid_to_check INTEGER)
+    RETURNS BOOLEAN AS
 $$
-declare
-    is_resigned boolean;
-begin
-    is_resigned := (SELECT resigned_date FROM employees E WHERE E.eid = eid_to_check) is not null;
-    return is_resigned;
+DECLARE
+    is_resigned BOOLEAN;
+BEGIN
+    is_resigned := (SELECT resigned_date FROM employees E WHERE E.eid = eid_to_check) IS NOT NULL;
+    RETURN is_resigned;
 end;
-$$ language plpgsql;
+$$ LANGUAGE plpgsql;
 
-create or replace function is_same_department(eid1 int, eid2 int)
-    returns boolean as
+CREATE OR REPLACE FUNCTION is_same_department(eid1 INT, eid2 INT)
+    RETURNS BOOLEAN AS
 $$
-declare
-    is_same boolean;
-begin
+DECLARE
+    is_same BOOLEAN;
+BEGIN
     is_same := (SELECT did FROM employees E WHERE E.eid = eid1)
         = (SELECT did FROM employees E WHERE E.eid = eid2);
-    return is_same;
+    RETURN is_same;
 end;
-$$ language plpgsql;
+$$ LANGUAGE plpgsql;
 
-create or replace function is_same_department_as_meeting_room(eid int, floor int, room int)
-    returns boolean as
+CREATE OR REPLACE FUNCTION is_same_department_as_meeting_room(eid INT, floor INT, room INT)
+    RETURNS BOOLEAN AS
 $$
-declare
-    is_same boolean;
-begin
-    is_same := (SELECT did FROM employees E WHERE E.eid = is_same_department_as_meeting_room.eid)
+DECLARE
+    is_same BOOLEAN;
+BEGIN
+    is_same := (SELECT did FROM employees E WHERE E.eid = is_same_department_AS_meeting_room.eid)
         = (SELECT did
            FROM meetingrooms M
            WHERE M.floor = is_same_department_as_meeting_room.floor
              AND M.room = is_same_department_as_meeting_room.room);
-    return is_same;
+    RETURN is_same;
 end;
-$$ language plpgsql;
+$$ LANGUAGE plpgsql;
 
-create or replace function is_meeting_approved(floor int, room int, stime int, date date)
-    returns boolean as
+CREATE OR REPLACE FUNCTION is_meeting_approved(floor INT, room INT, stime INT, date DATE)
+    RETURNS BOOLEAN AS
 $$
-declare
-    is_approved boolean;
-begin
+DECLARE
+    is_approved BOOLEAN;
+BEGIN
     is_approved := (SELECT S.eid_manager
                     FROM sessions S
                     WHERE S.date = is_meeting_approved.date
                       AND S.room = is_meeting_approved.room
                       AND S.floor = is_meeting_approved.floor
-                      AND S.time = is_meeting_approved.stime) is not null;
-    return is_approved;
+                      AND S.time = is_meeting_approved.stime) IS NOT NULL;
+    RETURN is_approved;
 end;
-$$ language plpgsql;
+$$ LANGUAGE plpgsql;
 
 --Check if the meeting session is under the max capacity
-create or replace function is_under_max_capacity(floor int, room int, stime int, date date)
-    returns boolean as
+CREATE OR REPLACE FUNCTION is_under_max_capacity(floor INT, room INT, stime INT, date DATE)
+    RETURNS BOOLEAN AS
 $$
-declare
-    num_participants     int;
-    most_recent_capacity int;
-    is_under             boolean;
-begin
+DECLARE
+    num_participants     INTEGER;
+    most_recent_capacity INTEGER;
+    is_under             BOOLEAN;
+BEGIN
     num_participants := (SELECT count(*)
                          FROM Joins J
                          WHERE J.date = is_under_max_capacity.date
@@ -111,34 +111,34 @@ begin
                              ORDER BY U.datetime DESC
                              LIMIT 1);
     is_under := (num_participants < most_recent_capacity);
-    return is_under;
+    RETURN is_under;
 end;
-$$ language plpgsql;
+$$ LANGUAGE plpgsql;
 
-create or replace function is_meeting_exist(floor int, room int, stime int, date date)
-    returns boolean as
+CREATE OR REPLACE FUNCTION is_meeting_exist(floor INT, room INT, stime INT, date DATE)
+    RETURNS BOOLEAN AS
 $$
-declare
-    is_there boolean;
-begin
+DECLARE
+    is_there BOOLEAN;
+BEGIN
     is_there := EXISTS(SELECT 1
                     FROM sessions S
                     WHERE S.date = is_meeting_exist.date
                       AND S.room = is_meeting_exist.room
                       AND S.floor = is_meeting_exist.floor
                       AND S.time = is_meeting_exist.stime);
-    return is_there;
+    RETURN is_there;
 end;
-$$ language plpgsql;
+$$ LANGUAGE plpgsql;
 
-create or replace function is_future_meeting( date date)
-    returns boolean as
+CREATE OR REPLACE FUNCTION is_future_meeting (date DATE)
+    RETURNS BOOLEAN AS
 $$
-declare
-    is_future boolean;
-begin
+DECLARE
+    is_future BOOLEAN;
+BEGIN
     is_future := date > CURRENT_DATE;
-    return is_future;
+    RETURN is_future;
 end;
-$$ language plpgsql;
+$$ LANGUAGE plpgsql;
 
