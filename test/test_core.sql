@@ -12,6 +12,8 @@ CALL join_meeting (2, 3, '2021-11-16', 10, 14, 1);
 
 CALL approve_meeting (2, 3, '2021-11-16', 10, 14, 2);
 
+--CALL join_meeting (2, 3, '2021-11-16', 10, 14, 41);
+
 -- New Session
 -- CALL book_room (2, 3, '2021-10-30', 12, 13, 33);
 --CALL join_meeting (2, 3, '2021-10-29', 12, 13, 33);
