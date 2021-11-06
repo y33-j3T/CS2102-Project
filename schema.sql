@@ -34,10 +34,7 @@ CREATE TABLE HealthDeclaration (
     CONSTRAINT fever_check CHECK
         ((fever AND temp > 37.5) OR (NOT fever AND temp <= 37.5))
 );
--- declare daily? -> do in function/triggers
--- fever? -> functions
 -- default date format: yyyy-mm-dd ex. 2021-10-16
--- insert into t values(TO_DATE('10/12/2015', 'DD/MM/YYYY'));
 
 -- Combine MeetingRooms and LocatedIn
 CREATE TABLE MeetingRooms (
@@ -71,7 +68,7 @@ CREATE TABLE Sessions (
     floor           INTEGER,
     eid_booker      INTEGER NOT NULL,
     eid_manager     INTEGER DEFAULT NULL,
-    PRIMARY KEY (date, time, room, floor), -- each meeting room can only have 1 session at a time
+    PRIMARY KEY (date, time, room, floor),
     FOREIGN KEY (room, floor) REFERENCES MeetingRooms (room, floor),
     FOREIGN KEY (eid_booker) REFERENCES Booker (eid)
         ON DELETE CASCADE,
@@ -81,11 +78,7 @@ CREATE TABLE Sessions (
     CONSTRAINT valid_stime CHECK (time >= 0 AND time <= 23) -- 24 available sessions a day,
 );
 -- assumption (from the project description): each booking is made on 1-hr basis
--- what if booker and manager is deleted?
--- Same department manager - in function
--- is future meeting - in function/trigger
--- what if the booker resigned? - remove/continue meeting
--- what if the approved manager resigned?
+
 
 CREATE TABLE Joins (
     eid             INTEGER,
@@ -101,6 +94,7 @@ CREATE TABLE Joins (
     ON UPDATE CASCADE
 );
 
+
 CREATE TABLE Updates(
     room            INTEGER,
     floor           INTEGER,
@@ -112,24 +106,6 @@ CREATE TABLE Updates(
         ON DELETE SET NULL,
     FOREIGN KEY (room, floor) REFERENCES MeetingRooms (room, floor)
 );
-
--- datetime: what is the new capacity, if multiple updates in a day?
--- what if a manager change a room capacity, then resign??
-
--- uncaptured
--- 16. If an employee is having a fever, they cannot book a room.
--- 18. The employee booking the room immediately joins the booked meeting.
--- 19. If an employee is having a fever, they cannot join a booked meeting.
--- 21. A manager can only approve a booked meeting in the same department as the manager
--- 23. Once approved, there should be no more changes in the participants and the participants will definitely come to the meeting on the stipulated day.
--- 24. A manager from the same department as the meeting room may change the meeting room capacity.
--- 25. A booking can only be made for future meetings.
--- 26. An employee can only join future meetings.
--- 27. An approval can only be made on future meetings.
--- 28. Every employee must do a daily health declaration.
--- 31. If the declared temperature is higher than 37.5 Celsius, the employee is having a fever.
--- 34. When an employee resign, they are no longer allowed to book or approve any meetings.
--- 35. Contact tracing constraints
 
 -- CREATE TABLE Seniors (
 --     eid             INTEGER NOT NULL,
