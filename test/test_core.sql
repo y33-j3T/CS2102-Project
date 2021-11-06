@@ -90,3 +90,26 @@ select search_room(15, current_date, 2, 7);
 CALL book_room (2, 3, '2021-11-13', 2, 7, 26);
 select search_room(5, '2021-11-13', 2, 7);
 CALL unbook_room (2, 3, '2021-11-13', 2, 7, 26);
+select search_room(5, '2021-11-13', 2, 7);
+
+-- check junior can't book
+CALL book_room (2, 3, '2021-11-12', 2, 7, 7);
+
+-- check if manager from different department can approve
+CALL book_room (2, 3, '2021-11-13', 10, 11, 26);
+CALL approve_meeting (2, 3, '2021-11-13', 10, 11, 1);
+CALL unbook_room (2, 3, '2021-11-13', 10, 11, 26);
+
+-- check if manager can book and approve
+CALL book_room (2, 3, '2021-11-13', 10, 11, 2);
+CALL approve_meeting (2, 3, '2021-11-13', 10, 11, 2);
+CALL unbook_room (2, 3, '2021-11-13', 10, 11, 2);
+
+-- check if can sabotage
+CALL book_room (2, 3, '2021-11-13', 10, 11, 2);
+CALL unbook_room (2, 3, '2021-11-13', 10, 11, 26);
+CALL unbook_room (2, 3, '2021-11-13', 10, 11, 2);
+
+-- check if can unbook multiple sessions
+CALL book_room (2, 3, '2021-11-13', 6, 10, 26);
+CALL unbook_room (2, 3, '2021-11-13', 6, 8, 26);
