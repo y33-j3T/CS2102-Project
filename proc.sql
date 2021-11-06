@@ -146,158 +146,6 @@ end;
 $$ LANGUAGE plpgsql;
 
 
-
---*************************************************************************
--- trigger.sql
-DROP TRIGGER IF EXISTS can_join_meeting ON Joins;
-DROP TRIGGER IF EXISTS can_book ON Sessions;
-DROP TRIGGER IF EXISTS can_approve ON Sessions;
-DROP TRIGGER IF EXISTS can_leave_meeting ON Joins;
-CREATE OR REPLACE FUNCTION remove_bookings_over_capacity()
-    RETURNS TRIGGER AS
-$$
-declare
-    --Get the nearest update after this
-    next_update_date date := (SELECT date(U.datetime)
-                              FROM updates U
-                              WHERE U.datetime > NEW.datetime AND U.room = NEW.room AND U.floor = NEW.floor
-                              ORDER BY U.datetime
-                              LIMIT 1);
-    capacity         int  := NEW.new_cap;
-    curs CURSOR FOR (SELECT S.time, S.date, S.floor, S.room, COUNT(J.eid)
-                     FROM sessions S
-                              JOIN Joins J
-                                   ON S.time = J.time AND S.date = J.date AND S.floor = J.floor AND S.room = J.room
-                     WHERE S.floor = NEW.floor AND S.room = NEW.room
-                       AND S.date >= CURRENT_DATE         -- Future Sessions
-                       AND (S.date >= date(NEW.datetime)) -- After the update date
-                     GROUP BY S.time, S.date, S.floor, S.room
-                     HAVING COUNT(J.eid) > capacity);
-    r                RECORD;
-begin
-    open curs;
-    loop
-        -- EXIT WHEN NO MORE ROWS
-        fetch curs into r;
-        exit when not FOUND;
-        DELETE
-        FROM sessions S
-        WHERE S.time = r.time
-          AND S.date = r.date
-          AND S.floor = r.floor
-          AND S.room = r.room
-          AND (((next_update_date is not null) and S.date < next_update_date)
-            OR next_update_date is null);
-    end loop;
-    close curs;
-    return null;
-end;
-$$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS remove_bookings_over_capacity ON Updates;
-CREATE TRIGGER remove_bookings_over_capacity
-    AFTER INSERT
-    ON Updates
-    FOR EACH ROW
-EXECUTE FUNCTION remove_bookings_over_capacity();
-
-
--- Fever SOP:
--- If employee is booker, delete Sessions where he booked, approved or not.
--- Else remove the employee from all future Joins, approved or not.
--- Get close contacts and do the same but for day D to day D+7 only
-CREATE OR REPLACE FUNCTION fever_sop() RETURNS TRIGGER AS
-$$
-DECLARE
-    fever_eid INTEGER;
-    fever_date DATE;
-BEGIN
-    fever_eid := NEW.eid;
-    fever_date := NEW.date;
-
-    -- for fever employee
-    -- remove employee from all future Joins
-    DELETE
-    FROM Joins j
-    WHERE j.eid = fever_eid
-        AND date > fever_date;
-
-    -- employee is booker, delete Sessions where he booked
-    DELETE
-    FROM Sessions
-    WHERE eid_booker = fever_eid
-        AND date > fever_date;
-
-    -- for close contacts
-    -- remove close contacts from Joins in day D to day D+7
-    WITH CloseContacts AS (SELECT close_contact_eid FROM contact_tracing(fever_eid, fever_date))
-    DELETE
-    FROM Joins j
-    WHERE EXISTS(
-                  SELECT 1
-                  FROM CloseContacts c
-                  WHERE j.eid = c.close_contact_eid
-                    AND j.date >= fever_date
-                    AND j.date <= fever_date + 7
-              );
-
-    WITH CloseContacts AS (SELECT close_contact_eid FROM contact_tracing(fever_eid, fever_date))
-    -- close contact is booker, delete Session he booked in day D to day D+7
-    DELETE
-    FROM Sessions s
-    WHERE EXISTS(
-                  SELECT 1
-                  FROM CloseContacts c
-                  WHERE s.eid_booker = c.close_contact_eid
-                    AND s.date >= fever_date
-                    AND s.date <= fever_date + 7
-              );
-
-
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
-
--- If an employee is declares fever at day D, activate fever SOP
-DROP TRIGGER IF EXISTS fever_detected ON HealthDeclaration;
-CREATE TRIGGER fever_detected
-    AFTER INSERT
-    ON HealthDeclaration
-    FOR EACH ROW
-    WHEN (NEW.fever = TRUE)
-EXECUTE FUNCTION fever_sop();
-
-
-CREATE OR REPLACE FUNCTION remove_employee_from_future_record()
-    RETURNS TRIGGER AS
-$$
-BEGIN
-    -- Update session to non-approved if resigned employee is a approval
-    -- DELETE FROM Sessions WHERE eid_manager = NEW.eid AND Sessions.date > NEW.resigned_date;
-    UPDATE Sessions
-    SET eid_manager = null
-    WHERE eid_manager = NEW.eid AND Sessions.date > NEW.resigned_date;
-
-    -- remove session if resigned employee is a booker
-    DELETE FROM Sessions WHERE eid_booker = NEW.eid AND Sessions.date > NEW.resigned_date;
-
-    -- remove employee from future meeting
-    DELETE FROM Joins WHERE eid = NEW.eid AND Joins.date > NEW.resigned_date;
-
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS resignation_sop ON Employees;
-CREATE TRIGGER resignation_sop
-    AFTER UPDATE OF resigned_date
-    ON Employees
-    FOR EACH ROW
-EXECUTE FUNCTION remove_employee_from_future_record();
-
-
-
 --*************************************************************************
 -- basic.sql
 -- DROP PROCEDURE IF EXISTS add_department, remove_department,
@@ -787,24 +635,14 @@ $$ LANGUAGE plpgsql;
 
 
 -- view_manager_report: used by manager to find all meeting rooms that require approval.
-CREATE OR REPLACE FUNCTION get_resigned (IN in_eid INT)
-RETURNS TABLE(eid INT, resigned_date DATE) AS $$
-BEGIN
-    RETURN QUERY
-        SELECT E.eid, E.resigned_date FROM Employees E
-        WHERE E.eid = get_resigned.in_eid;
-END;
-$$ LANGUAGE plpgsql;
-
 
 CREATE OR REPLACE FUNCTION view_manager_report (IN start_date DATE, IN in_eid INT)
 RETURNS TABLE(floor INT, room INT, date DATE, start_hr INT, eid INT) AS $$
 DECLARE
     curs CURSOR FOR (SELECT * FROM Sessions S
-                     WHERE S.eid_manager IS NULL
-                    --  AND get_room_department(S.room, S.floor) = get_employee_department(view_manager_report.in_eid)
+                     WHERE not is_meeting_approved(S.floor, S.room,S.time, S.date)
                      AND is_same_department_as_meeting_room (view_manager_report.in_eid, S.floor, S.room)
-                     AND (SELECT T.resigned_date FROM get_resigned(eid_booker) T) IS NULL
+                     AND not is_resigned(S.eid_booker)
                      ORDER BY date, time);
     r1 RECORD;
 BEGIN
@@ -822,3 +660,150 @@ BEGIN
     CLOSE curs;
 END;
 $$ LANGUAGE plpgsql;
+
+
+--*************************************************************************
+-- trigger.sql
+CREATE OR REPLACE FUNCTION remove_bookings_over_capacity()
+    RETURNS TRIGGER AS
+$$
+declare
+    --Get the nearest update after this
+    next_update_date date := (SELECT date(U.datetime)
+                              FROM updates U
+                              WHERE U.datetime > NEW.datetime AND U.room = NEW.room AND U.floor = NEW.floor
+                              ORDER BY U.datetime
+                              LIMIT 1);
+    capacity         int  := NEW.new_cap;
+    curs CURSOR FOR (SELECT S.time, S.date, S.floor, S.room, COUNT(J.eid)
+                     FROM sessions S
+                              JOIN Joins J
+                                   ON S.time = J.time AND S.date = J.date AND S.floor = J.floor AND S.room = J.room
+                     WHERE S.floor = NEW.floor AND S.room = NEW.room
+                       AND S.date >= CURRENT_DATE         -- Future Sessions
+                       AND (S.date >= date(NEW.datetime)) -- After the update date
+                     GROUP BY S.time, S.date, S.floor, S.room
+                     HAVING COUNT(J.eid) > capacity);
+    r                RECORD;
+begin
+    open curs;
+    loop
+        -- EXIT WHEN NO MORE ROWS
+        fetch curs into r;
+        exit when not FOUND;
+        DELETE
+        FROM sessions S
+        WHERE S.time = r.time
+          AND S.date = r.date
+          AND S.floor = r.floor
+          AND S.room = r.room
+          AND (((next_update_date is not null) and S.date < next_update_date)
+            OR next_update_date is null);
+    end loop;
+    close curs;
+    return null;
+end;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS remove_bookings_over_capacity ON Updates;
+CREATE TRIGGER remove_bookings_over_capacity
+    AFTER INSERT
+    ON Updates
+    FOR EACH ROW
+EXECUTE FUNCTION remove_bookings_over_capacity();
+
+
+-- Fever SOP:
+-- If employee is booker, delete Sessions where he booked, approved or not.
+-- Else remove the employee from all future Joins, approved or not.
+-- Get close contacts and do the same but for day D to day D+7 only
+CREATE OR REPLACE FUNCTION fever_sop() RETURNS TRIGGER AS
+$$
+DECLARE
+    fever_eid INTEGER;
+    fever_date DATE;
+BEGIN
+    fever_eid := NEW.eid;
+    fever_date := NEW.date;
+
+    -- for fever employee
+    -- remove employee from all future Joins
+    DELETE
+    FROM Joins j
+    WHERE j.eid = fever_eid
+      AND date > fever_date;
+
+    -- employee is booker, delete Sessions where he booked
+    DELETE
+    FROM Sessions
+    WHERE eid_booker = fever_eid
+      AND date > fever_date;
+
+    -- for close contacts
+    -- remove close contacts from Joins in day D to day D+7
+    WITH CloseContacts AS (SELECT close_contact_eid FROM contact_tracing(fever_eid, fever_date))
+    DELETE
+    FROM Joins j
+    WHERE EXISTS(
+                  SELECT 1
+                  FROM CloseContacts c
+                  WHERE j.eid = c.close_contact_eid
+                    AND j.date >= fever_date
+                    AND j.date <= fever_date + 7
+              );
+
+    WITH CloseContacts AS (SELECT close_contact_eid FROM contact_tracing(fever_eid, fever_date))
+         -- close contact is booker, delete Session he booked in day D to day D+7
+    DELETE
+    FROM Sessions s
+    WHERE EXISTS(
+                  SELECT 1
+                  FROM CloseContacts c
+                  WHERE s.eid_booker = c.close_contact_eid
+                    AND s.date >= fever_date
+                    AND s.date <= fever_date + 7
+              );
+
+
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- If an employee is declares fever at day D, activate fever SOP
+DROP TRIGGER IF EXISTS fever_detected ON HealthDeclaration;
+CREATE TRIGGER fever_detected
+    AFTER INSERT
+    ON HealthDeclaration
+    FOR EACH ROW
+    WHEN (NEW.fever = TRUE)
+EXECUTE FUNCTION fever_sop();
+
+
+CREATE OR REPLACE FUNCTION remove_employee_from_future_record()
+    RETURNS TRIGGER AS
+$$
+BEGIN
+    -- Update session to non-approved if resigned employee is a approval
+    -- DELETE FROM Sessions WHERE eid_manager = NEW.eid AND Sessions.date > NEW.resigned_date;
+    UPDATE Sessions
+    SET eid_manager = null
+    WHERE eid_manager = NEW.eid AND Sessions.date > NEW.resigned_date;
+
+    -- remove session if resigned employee is a booker
+    DELETE FROM Sessions WHERE eid_booker = NEW.eid AND Sessions.date > NEW.resigned_date;
+
+    -- remove employee from future meeting
+    DELETE FROM Joins WHERE eid = NEW.eid AND Joins.date > NEW.resigned_date;
+
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS resignation_sop ON Employees;
+CREATE TRIGGER resignation_sop
+    AFTER UPDATE OF resigned_date
+    ON Employees
+    FOR EACH ROW
+EXECUTE FUNCTION remove_employee_from_future_record();
+
