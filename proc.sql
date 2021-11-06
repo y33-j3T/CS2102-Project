@@ -321,7 +321,6 @@ $$
 declare
     sessions_not_available int;
     curr_time              int;
-    can_book               boolean;
 BEGIN
     sessions_not_available := (SELECT count(*)
                                FROM sessions S
@@ -582,7 +581,7 @@ CREATE OR REPLACE FUNCTION view_booking_report (IN start_date DATE, IN eid INT)
 RETURNS TABLE(floor INT, room INT, date DATE, start_hr TEXT, is_approved BOOLEAN) AS $$
 DECLARE
     curs CURSOR FOR (SELECT * FROM Sessions S
-                     WHERE S.eid_booker = view_booking_report.eid 
+                     WHERE S.eid_booker = view_booking_report.eid
                      AND S.date >= view_booking_report.start_date
                      ORDER BY date, time);
     r1 RECORD;
