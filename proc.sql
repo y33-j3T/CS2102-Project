@@ -614,9 +614,7 @@ RETURNS TABLE(floor INT, room INT, date DATE, start_hr TEXT) AS $$
 DECLARE
     curs CURSOR FOR (SELECT * FROM Joins J WHERE J.eid = view_future_meeting.eid ORDER BY date, time);
     r1 RECORD;
-    today DATE;
 BEGIN
-    today = CURRENT_DATE;
     OPEN curs;
     LOOP
         FETCH curs INTO r1;
@@ -635,12 +633,11 @@ $$ LANGUAGE plpgsql;
 
 
 -- view_manager_report: used by manager to find all meeting rooms that require approval.
-
 CREATE OR REPLACE FUNCTION view_manager_report (IN start_date DATE, IN in_eid INT)
 RETURNS TABLE(floor INT, room INT, date DATE, start_hr INT, eid INT) AS $$
 DECLARE
     curs CURSOR FOR (SELECT * FROM Sessions S
-                     WHERE not is_meeting_approved(S.floor, S.room,S.time, S.date)
+                     WHERE not is_meeting_approved(S.floor, S.room, S.time, S.date)
                      AND is_same_department_as_meeting_room (view_manager_report.in_eid, S.floor, S.room)
                      AND not is_resigned(S.eid_booker)
                      ORDER BY date, time);
