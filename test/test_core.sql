@@ -77,3 +77,16 @@ CALL unbook_room (2, 3, '2021-11-13', 10, 11, 26);
 
 -- check clean up
 select * from joins where date = '2021-11-13';
+
+
+-- search all room
+select search_room(5, current_date, 2, 7);
+select * from meetingrooms;
+
+-- search no room
+select search_room(15, current_date, 2, 7);
+
+-- book then search
+CALL book_room (2, 3, '2021-11-13', 2, 7, 26);
+select search_room(5, '2021-11-13', 2, 7);
+CALL unbook_room (2, 3, '2021-11-13', 2, 7, 26);
