@@ -430,9 +430,11 @@ begin
     while curr_time < end_time
         loop
             can_leave_meeting :=
-                        (not is_meeting_approved(leave_meeting.floor, leave_meeting.room, curr_time,
-                                                 leave_meeting.date))
-                        and is_future_meeting(leave_meeting.date);
+                        not is_meeting_approved(leave_meeting.floor, leave_meeting.room, curr_time,
+                                                 leave_meeting.date)
+                        and is_future_meeting(leave_meeting.date)
+                        and not leave_meeting.eid =  (SELECT eid_booker FROM sessions S WHERE S.floor = leave_meeting.floor
+                            and S.room = leave_meeting.room and S.date = leave_meeting.date and S.time = curr_time);
             if can_leave_meeting then
                 delete
                 from joins J
